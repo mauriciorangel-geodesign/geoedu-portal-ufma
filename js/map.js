@@ -4,7 +4,8 @@ const esriAttr='Tiles &copy; Esri — Source: Esri and data providers';
 const grayBase=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',{maxZoom:16,attribution:esriAttr});
 const grayLabels=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}',{maxZoom:16,attribution:esriAttr});
 const sentinelAttr='EOxCloudless — EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2025)';
-const landsatAttr='Landsat imagery — USGS/NASA via Esri';
+const landsatAttr='Landsat imagery — Esri, USGS, NASA';
+const LandsatImageLayer=L.GridLayer.extend({createTile(coords,done){const tile=document.createElement('img');tile.alt='';tile.setAttribute('role','presentation');const size=256,half=20037508.342789244,n=2**coords.z,span=(half*2)/n,minX=-half+coords.x*span,maxX=minX+span,maxY=half-coords.y*span,minY=maxY-span;const params=new URLSearchParams({f:'image',bbox:`${minX},${minY},${maxX},${maxY}`,bboxSR:'3857',imageSR:'3857',size:`${size},${size}`,format:'jpgpng',interpolation:'RSP_BilinearInterpolation'});tile.onload=()=>done(null,tile);tile.onerror=()=>done(new Error('Falha ao carregar imagem Landsat'),tile);tile.src=`https://landsat2.arcgis.com/arcgis/rest/services/Landsat8_Views/ImageServer/exportImage?${params.toString()}`;return tile;}});
 const basemaps={
   osm:L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}),
   imagery:L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:esriAttr}),
@@ -12,7 +13,7 @@ const basemaps={
   opentopo:L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{maxZoom:17,attribution:'Map data &copy; OpenStreetMap contributors | SRTM | Map style &copy; OpenTopoMap (CC-BY-SA)'}),
   gray:L.layerGroup([grayBase,grayLabels]),
   sentinel:L.tileLayer('https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2025_3857/default/g/{z}/{y}/{x}.jpg',{minZoom:0,maxNativeZoom:14,maxZoom:18,attribution:sentinelAttr}),
-  landsat:L.tileLayer.wms('https://landsat2.arcgis.com/arcgis/services/Landsat8_Views/ImageServer/WMSServer',{layers:'Landsat8_Views',format:'image/jpeg',transparent:false,version:'1.1.1',maxZoom:18,attribution:landsatAttr})
+  landsat:new LandsatImageLayer({tileSize:256,minZoom:2,maxZoom:16,attribution:landsatAttr})
 };
 let currentBasemap=basemaps.osm.addTo(map);L.control.scale({imperial:false,position:'bottomleft'}).addTo(map);
 let maranhao=null,municipios=null,maranhaoBounds=null,localGeojson=null,mapMode='identify';
