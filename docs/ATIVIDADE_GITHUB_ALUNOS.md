@@ -58,14 +58,26 @@ Depois:
 
 ## Etapa 6 — Revisão
 Após a submissão, o Professor/GEOPRO poderá:
-- aprovar e incorporar o produto;
+- aprovar o produto para incorporação ao acervo acadêmico;
 - solicitar alterações;
-- registrar observações técnicas ou acadêmicas.
+- registrar observações técnicas ou acadêmicas;
+- encerrar a submissão sem incorporação, quando necessário.
 
-Quando houver solicitação de correção, o grupo deverá corrigir o produto e atualizar seu fork. As alterações associadas ao mesmo trabalho poderão atualizar o Pull Request existente.
+Quando houver solicitação de correção, o grupo deverá responder à revisão e realizar os ajustes necessários. Se a correção envolver o arquivo geoespacial, o produto deverá ser corrigido e atualizado no fork; novos commits associados ao mesmo trabalho poderão atualizar o Pull Request existente.
+
+## Etapa 7 — Entender os estados do produto
+A submissão pode passar por três estados conceituais:
+
+1. **Em avaliação:** o Pull Request está aberto e sendo analisado.
+2. **Aprovado para o acervo:** o produto foi aprovado e incorporado ao repositório oficial por Merge.
+3. **Publicado no GeoPortal:** o Professor/GEOPRO selecionou posteriormente o produto para aparecer como camada na interface cartográfica do GeoEdu.
+
+**Atenção:** um trabalho aprovado e incorporado ao acervo não aparece automaticamente no mapa. A publicação cartográfica é uma etapa posterior, realizada sob responsabilidade do Professor/GEOPRO.
 
 ## Entrega considerada completa
 A atividade estará formalmente submetida quando existir um Pull Request contendo o produto no diretório correto, nomenclatura adequada, metadados preenchidos e confirmação do teste no Laboratório GeoEdu.
 
+A submissão completa não implica aprovação automática. Da mesma forma, a aprovação para o acervo não implica publicação automática no GeoPortal.
+
 ## O que o estudante aprende
-A atividade articula preparação de dados geoespaciais, SRC, qualidade geométrica, atributos, generalização, publicação WebGIS, documentação, controle de versão e colaboração científica.
+A atividade articula preparação de dados geoespaciais, SRC, qualidade geométrica, atributos, generalização, publicação WebGIS, documentação, controle de versão, revisão por pares/supervisão e colaboração científica.
