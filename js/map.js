@@ -67,3 +67,9 @@ function openSymbology(k){activeSymbolLayer=k;const s=thematicStyles[k];symName.
 document.querySelectorAll('.symbology-btn').forEach(b=>b.addEventListener('click',()=>openSymbology(b.dataset.symbolLayer)));
 Object.values(symControls).forEach(el=>el.addEventListener('input',applySymbology));
 document.getElementById('sym-reset').addEventListener('click',()=>{if(!activeSymbolLayer)return;thematicStyles[activeSymbolLayer]={...defaultStyles[activeSymbolLayer]};openSymbology(activeSymbolLayer);const layer=thematicLayerByKey(activeSymbolLayer);if(layer)layer.setStyle(thematicStyles[activeSymbolLayer]);});
+
+/* Informações do portal em modal central — v1.3.1 */
+const infoModal=document.getElementById('info-modal');
+document.getElementById('btn-info').onclick=()=>infoModal.hidden=false;
+document.getElementById('info-modal-close').onclick=()=>infoModal.hidden=true;
+infoModal.addEventListener('click',e=>{if(e.target===infoModal)infoModal.hidden=true;});
