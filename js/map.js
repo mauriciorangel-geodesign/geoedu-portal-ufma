@@ -50,11 +50,6 @@ document.querySelectorAll('.tool-btn[data-panel]').forEach(btn=>btn.addEventList
 const modal=document.getElementById('modal');document.getElementById('btn-geoai').onclick=()=>modal.hidden=false;document.getElementById('modal-close').onclick=()=>modal.hidden=true;modal.addEventListener('click',e=>{if(e.target===modal)modal.hidden=true;});
 document.getElementById('zoom-in').onclick=()=>map.zoomIn();document.getElementById('zoom-out').onclick=()=>map.zoomOut();
 
-function softenGeographicGrid(){document.querySelectorAll('.graticule,.latlng-grid,.coordinate-grid').forEach(el=>{el.style.opacity='.22';el.style.strokeOpacity='.22';});}
-map.on('layeradd zoomend moveend',()=>requestAnimationFrame(softenGeographicGrid));softenGeographicGrid();
-
-function equalizeGeographicGrid(){document.querySelectorAll('.graticule,.latlng-grid,.coordinate-grid,.graticule path,.latlng-grid path,.coordinate-grid path').forEach(el=>{el.style.setProperty('opacity','.22','important');el.style.setProperty('stroke-opacity','.22','important');});}
-map.on('layeradd zoomend moveend',()=>requestAnimationFrame(equalizeGeographicGrid));equalizeGeographicGrid();
 
 /* Informações do portal em modal central — v1.3.1 */
 const infoModal=document.getElementById('info-modal');
@@ -67,7 +62,7 @@ const coordsDisplay=document.getElementById('coords');
 map.on('mousemove',e=>{if(!coordsDisplay)return;coordsDisplay.textContent='Lat: '+e.latlng.lat.toFixed(6)+'° | Long: '+e.latlng.lng.toFixed(6)+'°';});
 map.on('mouseout',()=>{if(coordsDisplay)coordsDisplay.textContent='Lat: — | Long: —';});
 
-/* Propriedades e consulta atributiva — v1.4.0 */
+/* Núcleo de propriedades, estilo e consulta atributiva — consolidado v1.7.0 */
 const propPanel=document.getElementById('panel-properties'),propSummary=document.getElementById('prop-summary'),queryField=document.getElementById('query-field'),queryOperator=document.getElementById('query-operator'),queryValue=document.getElementById('query-value'),queryStatus=document.getElementById('query-status'),queryResults=document.getElementById('query-results');
 const propStyle={fillColor:document.getElementById('prop-fill-color'),fillOpacity:document.getElementById('prop-fill-opacity'),color:document.getElementById('prop-stroke-color'),weight:document.getElementById('prop-weight'),opacity:document.getElementById('prop-stroke-opacity'),dash:document.getElementById('prop-dash')};
 const layerMeta={maranhao:{name:'Limite do Maranhão — IBGE 2025',type:'Polígono',source:'IBGE — Malha Territorial 2025'},municipios:{name:'Municípios do Maranhão — IBGE 2025',type:'Polígono',source:'IBGE — Malha Municipal 2025'},local:{name:'Camada local',type:'GeoJSON',source:'Arquivo local — Laboratório GeoJSON'}};
@@ -95,5 +90,5 @@ document.getElementById('query-clear').onclick=()=>{queryValue.value='';clearQue
 queryValue.addEventListener('keydown',e=>{if(e.key==='Enter')applyQuery();});
 queryField.addEventListener('change',()=>{const fs=featuresOf(dataByKey(activeQueryLayer)),sample=fs.map(f=>(f.properties||{})[queryField.value]).find(v=>v!==null&&v!==undefined&&v!=='');const numeric=sample!==undefined&&!Number.isNaN(Number(sample));[...queryOperator.options].forEach(o=>{if(o.value==='gt'||o.value==='lt')o.disabled=!numeric;});if(!numeric&&(queryOperator.value==='gt'||queryOperator.value==='lt'))queryOperator.value='contains';});
 
-/* Integração do Laboratório ao motor genérico — v1.5.0 */
+/* Integração do Laboratório ao motor vetorial — consolidado v1.7.0 */
 document.getElementById('lab-properties').onclick=()=>{if(localGeojson)openProperties('local');};
