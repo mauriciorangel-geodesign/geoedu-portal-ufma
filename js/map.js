@@ -12,7 +12,7 @@ const basemaps={
   topographic:L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:esriAttr}),
   opentopo:L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{maxZoom:17,attribution:'Map data &copy; OpenStreetMap contributors | SRTM | Map style &copy; OpenTopoMap (CC-BY-SA)'}),
   gray:L.layerGroup([grayBase,grayLabels]),
-  sentinel:L.tileLayer('https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2025_3857/default/g/{z}/{y}/{x}.jpg',{minZoom:0,maxNativeZoom:14,maxZoom:18,attribution:sentinelAttr}),
+  sentinel:L.tileLayer('https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2025_3857/default/g/{z}/{y}/{x}.jpg',{minZoom:0,maxNativeZoom:14,maxZoom:18,attribution:sentinelAttr,className:'sentinel-seamless-pane',updateWhenZooming:false,keepBuffer:3}),
   landsat:new LandsatImageLayer({tileSize:256,minZoom:2,maxZoom:16,attribution:landsatAttr})
 };
 let currentBasemap=basemaps.sentinel.addTo(map);L.control.scale({imperial:false,position:'bottomleft'}).addTo(map);
