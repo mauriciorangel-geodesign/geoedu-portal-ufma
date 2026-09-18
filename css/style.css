@@ -32,3 +32,7 @@
 /* v1.2.6 — uniformização da grade geográfica */
 .leaflet-overlay-pane .graticule,.leaflet-overlay-pane .latlng-grid,.leaflet-overlay-pane .coordinate-grid{opacity:.22!important;stroke-opacity:.22!important}
 .graticule path,.latlng-grid path,.coordinate-grid path{opacity:.22!important;stroke-opacity:.22!important}
+
+/* v1.2.7 — correção de emendas entre tiles durante zoom */
+.leaflet-tile-pane .leaflet-tile{outline:1px solid transparent}
+.sentinel-seamless-pane .leaflet-tile{width:257px!important;height:257px!important}
