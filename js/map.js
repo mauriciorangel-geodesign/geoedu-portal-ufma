@@ -73,3 +73,8 @@ const infoModal=document.getElementById('info-modal');
 document.getElementById('btn-info').onclick=()=>infoModal.hidden=false;
 document.getElementById('info-modal-close').onclick=()=>infoModal.hidden=true;
 infoModal.addEventListener('click',e=>{if(e.target===infoModal)infoModal.hidden=true;});
+
+/* Coordenadas do cursor — v1.3.2 */
+const coordsDisplay=document.getElementById('coords');
+map.on('mousemove',e=>{if(!coordsDisplay)return;coordsDisplay.textContent='Lat: '+e.latlng.lat.toFixed(6)+'° | Long: '+e.latlng.lng.toFixed(6)+'°';});
+map.on('mouseout',()=>{if(coordsDisplay)coordsDisplay.textContent='Lat: — | Long: —';});
