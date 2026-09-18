@@ -74,3 +74,7 @@
 .properties-select-label{display:grid;grid-template-columns:1fr 130px;gap:8px;align-items:center;padding:4px 0;font-size:11px;color:#415c57}
 .properties-select-label select{width:100%;padding:6px;border:1px solid #cad9d6;border-radius:6px;background:#fff;color:#334844}
 .lab-layer-tools{grid-template-columns:1fr}
+
+/* v1.6.2 — mais espaço útil para valores nas propriedades */
+.property-row{grid-template-columns:62px minmax(0,1fr);column-gap:4px}
+.property-row strong{overflow-wrap:anywhere;word-break:normal;white-space:normal}
