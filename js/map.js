@@ -15,7 +15,7 @@ const basemaps={
   sentinel:L.tileLayer('https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2025_3857/default/g/{z}/{y}/{x}.jpg',{minZoom:0,maxNativeZoom:14,maxZoom:18,attribution:sentinelAttr}),
   landsat:new LandsatImageLayer({tileSize:256,minZoom:2,maxZoom:16,attribution:landsatAttr})
 };
-let currentBasemap=basemaps.osm.addTo(map);L.control.scale({imperial:false,position:'bottomleft'}).addTo(map);
+let currentBasemap=basemaps.sentinel.addTo(map);L.control.scale({imperial:false,position:'bottomleft'}).addTo(map);
 let maranhao=null,municipios=null,maranhaoBounds=null,localGeojson=null,mapMode='identify';
 const maranhaoCheckbox=document.getElementById('layer-maranhao'),municipiosCheckbox=document.getElementById('layer-municipios');
 function formatArea(v){const n=Number(v);return Number.isFinite(n)?n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}):'—';}
