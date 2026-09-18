@@ -20,3 +20,11 @@
 .tool-dock{top:118px!important;left:62px!important}
 #coords,.latlng-grid,.coordinate-grid,.graticule{display:none!important}
 @media(max-width:760px){.zoom-dock{top:10px;left:56px}.tool-dock{top:104px!important;left:56px!important}}
+
+/* v1.2.5 — zoom no mesmo grid visual da toolbar */
+.zoom-dock{position:absolute;z-index:805;top:16px;left:62px;display:flex;flex-direction:column;gap:5px;padding:5px!important;width:52px;border-radius:13px;background:linear-gradient(160deg,rgba(7,59,76,.16),rgba(24,133,126,.10));backdrop-filter:blur(5px)}
+.zoom-dock .tool-btn{flex:0 0 42px}
+.tool-dock{top:132px!important;left:62px!important}
+@media(max-width:760px){.zoom-dock{top:10px;left:56px;width:46px;padding:4px!important}.zoom-dock .tool-btn{flex-basis:38px}.tool-dock{top:116px!important;left:56px!important}}
+/* A grade geográfica é mantida deliberadamente, porém em baixa ênfase visual */
+.leaflet-overlay-pane .graticule,.leaflet-overlay-pane .latlng-grid,.leaflet-overlay-pane .coordinate-grid{opacity:.22!important;stroke-opacity:.22!important}
