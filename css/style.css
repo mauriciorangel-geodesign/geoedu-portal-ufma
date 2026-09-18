@@ -28,3 +28,7 @@
 @media(max-width:760px){.zoom-dock{top:10px;left:56px;width:46px;padding:4px!important}.zoom-dock .tool-btn{flex-basis:38px}.tool-dock{top:116px!important;left:56px!important}}
 /* A grade geográfica é mantida deliberadamente, porém em baixa ênfase visual */
 .leaflet-overlay-pane .graticule,.leaflet-overlay-pane .latlng-grid,.leaflet-overlay-pane .coordinate-grid{opacity:.22!important;stroke-opacity:.22!important}
+
+/* v1.2.6 — uniformização da grade geográfica */
+.leaflet-overlay-pane .graticule,.leaflet-overlay-pane .latlng-grid,.leaflet-overlay-pane .coordinate-grid{opacity:.22!important;stroke-opacity:.22!important}
+.graticule path,.latlng-grid path,.coordinate-grid path{opacity:.22!important;stroke-opacity:.22!important}
