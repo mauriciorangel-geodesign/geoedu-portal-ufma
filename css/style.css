@@ -36,3 +36,6 @@
 /* v1.2.7 — correção de emendas entre tiles durante zoom */
 .leaflet-tile-pane .leaflet-tile{outline:1px solid transparent}
 .sentinel-seamless-pane .leaflet-tile{width:257px!important;height:257px!important}
+
+/* v1.3.0 — editor de simbologia */
+.layer-row{display:grid;grid-template-columns:1fr 32px;align-items:center;gap:5px}.layer-row label{min-width:0}.symbology-btn{width:30px;height:30px;border:1px solid rgba(9,87,91,.16);border-radius:8px;background:rgba(255,255,255,.58);cursor:pointer;font-size:15px;opacity:.75}.symbology-btn:hover{opacity:1;background:#eaf4f2}.symbology-panel h3{margin:12px 0 5px;font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:#4d7771}.symbol-section{padding:7px 9px 9px;margin:8px 0;background:rgba(255,255,255,.48);border:1px solid rgba(9,87,91,.10);border-radius:9px}.symbol-section label{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;padding:5px 0}.symbol-section input[type=color]{width:42px;height:27px;padding:2px;border:1px solid #cad9d6;border-radius:6px;background:#fff}.symbol-section input[type=range]{grid-column:1/-1;width:100%;accent-color:#216d63}.symbol-section select{max-width:130px;padding:5px;border:1px solid #cad9d6;border-radius:6px;background:#fff;color:#334844}
