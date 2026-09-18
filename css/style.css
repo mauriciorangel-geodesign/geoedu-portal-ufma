@@ -65,3 +65,8 @@
 .properties-panel.open~* #coords.coords-display{display:none!important}
 body.properties-open #coords.coords-display{right:382px}
 @media(max-width:760px){.leaflet-control-scale{margin-left:8px!important;margin-bottom:8px!important;padding:5px 8px!important}body.properties-open #coords.coords-display{display:none!important}}
+
+/* v1.7.3 — propriedade sempre alinhada ao nome da camada */
+.layer-row{display:flex;align-items:center;gap:5px;min-width:0}
+.layer-row>label{flex:0 1 auto;min-width:0;margin:0}
+.layer-row>.properties-btn{flex:0 0 30px;margin-left:2px}
