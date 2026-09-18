@@ -12,3 +12,11 @@
 .tool-dock{left:62px;top:108px}
 #coords{display:none!important}
 @media(max-width:760px){.leaflet-control-zoom{left:52px!important;top:0!important}.tool-dock{left:56px;top:94px}}
+
+/* v1.2.4 — zoom nativo substituído e sem grade/coordenadas */
+.leaflet-control-zoom{display:none!important}
+.zoom-dock{position:absolute;z-index:805;top:16px;left:62px;display:flex;flex-direction:column;gap:5px}
+.zoom-btn{font-family:Arial,sans-serif;font-size:23px;font-weight:400}
+.tool-dock{top:118px!important;left:62px!important}
+#coords,.latlng-grid,.coordinate-grid,.graticule{display:none!important}
+@media(max-width:760px){.zoom-dock{top:10px;left:56px}.tool-dock{top:104px!important;left:56px!important}}
