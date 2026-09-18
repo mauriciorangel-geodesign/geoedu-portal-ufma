@@ -58,3 +58,10 @@
 .attribute-grid th,.attribute-grid td{padding:6px 8px;border-right:1px solid #e0e9e7;border-bottom:1px solid #e0e9e7;max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .attribute-grid tbody tr{cursor:pointer}.attribute-grid tbody tr:hover{background:#eef7f5}.attribute-grid tbody tr.selected{background:#dcefeb}
 .attribute-grid .row-index{color:#71827e;text-align:right;min-width:34px}
+
+/* v1.7.2 — HUD cartográfico: coordenadas e escala */
+.leaflet-control-scale{margin-left:12px!important;margin-bottom:12px!important;padding:5px 9px!important;background:rgba(7,59,76,.72)!important;border:1px solid rgba(190,235,230,.28)!important;border-radius:8px!important;backdrop-filter:blur(7px);box-shadow:0 2px 10px rgba(6,56,68,.18)!important}
+.leaflet-control-scale-line{border:0!important;border-top:2px solid #eefcf9!important;background:transparent!important;color:#eefcf9!important;text-shadow:none!important;font-size:10px!important;line-height:1.2!important;padding:3px 2px 0!important}
+.properties-panel.open~* #coords.coords-display{display:none!important}
+body.properties-open #coords.coords-display{right:382px}
+@media(max-width:760px){.leaflet-control-scale{margin-left:8px!important;margin-bottom:8px!important;padding:5px 8px!important}body.properties-open #coords.coords-display{display:none!important}}
