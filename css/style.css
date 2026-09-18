@@ -61,3 +61,16 @@
 
 /* v1.5.2 — painel de propriedades mais compacto */
 .property-row{grid-template-columns:72px minmax(0,1fr);column-gap:7px}
+
+/* v1.6.0 — simbologia integrada ao painel de propriedades */
+.layer-row{grid-template-columns:1fr 32px}
+.properties-style-section{margin:10px 0 12px;padding-top:2px;border-top:1px solid rgba(9,87,91,.12)}
+.properties-style-section h3{margin:10px 0 7px;font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:#4d7771}
+.properties-style-row{display:grid;grid-template-columns:1fr 42px 54px;align-items:center;gap:8px;padding:4px 0}
+.properties-style-row input[type=color]{width:42px;height:28px;padding:2px;border:1px solid #cad9d6;border-radius:6px;background:#fff}
+.properties-style-row span{text-align:right;font-size:10px;color:#637b76;font-variant-numeric:tabular-nums}
+.properties-slider-label{display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center;padding:4px 0;font-size:11px;color:#415c57}
+.properties-slider-label input[type=range]{grid-column:1/-1;width:100%;accent-color:#216d63}
+.properties-select-label{display:grid;grid-template-columns:1fr 130px;gap:8px;align-items:center;padding:4px 0;font-size:11px;color:#415c57}
+.properties-select-label select{width:100%;padding:6px;border:1px solid #cad9d6;border-radius:6px;background:#fff;color:#334844}
+.lab-layer-tools{grid-template-columns:1fr}
