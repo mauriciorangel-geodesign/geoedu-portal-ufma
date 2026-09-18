@@ -49,3 +49,12 @@
 
 /* v1.5.0 — ferramentas para GeoJSON local */
 .lab-layer-tools{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:6px 0}.lab-layer-tools[hidden]{display:none}.lab-layer-tools .panel-action{margin:0;text-align:center;font-size:11px}.lab-validation{margin-top:7px;font-size:10px;line-height:1.45;color:#637b76}
+
+/* v1.5.1 — contenção de textos longos no painel de propriedades */
+.properties-panel{box-sizing:border-box;overflow-x:hidden}
+.property-summary{min-width:0;overflow:hidden}
+.property-row{grid-template-columns:minmax(82px,110px) minmax(0,1fr);align-items:start}
+.property-row>*{min-width:0}
+.property-row strong{display:block;max-width:100%;overflow-wrap:anywhere;word-break:break-word;white-space:normal;line-height:1.3}
+.query-section,.query-results{min-width:0;max-width:100%;overflow-x:hidden}
+.query-section select,.query-section input{box-sizing:border-box;min-width:0;max-width:100%}
