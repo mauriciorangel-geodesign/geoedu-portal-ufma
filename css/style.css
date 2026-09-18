@@ -6,3 +6,9 @@
 .tool-dock{top:118px;left:62px}
 .tool-group{border:none!important}
 @media(max-width:760px){.leaflet-control-zoom{left:44px!important;top:0!important}.leaflet-control-zoom a{width:38px!important;height:38px!important;line-height:36px!important}.tool-dock{top:104px;left:56px}}
+
+/* v1.2.3 — alinhamento único dos controles e remoção da leitura Lat/Long */
+.leaflet-control-zoom{left:56px!important;top:6px!important;padding:0!important;background:transparent!important;backdrop-filter:none!important;gap:5px!important}
+.tool-dock{left:62px;top:108px}
+#coords{display:none!important}
+@media(max-width:760px){.leaflet-control-zoom{left:52px!important;top:0!important}.tool-dock{left:56px;top:94px}}
