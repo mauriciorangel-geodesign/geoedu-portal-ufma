@@ -58,3 +58,6 @@
 .property-row strong{display:block;max-width:100%;overflow-wrap:anywhere;word-break:break-word;white-space:normal;line-height:1.3}
 .query-section,.query-results{min-width:0;max-width:100%;overflow-x:hidden}
 .query-section select,.query-section input{box-sizing:border-box;min-width:0;max-width:100%}
+
+/* v1.5.2 — painel de propriedades mais compacto */
+.property-row{grid-template-columns:72px minmax(0,1fr);column-gap:7px}
