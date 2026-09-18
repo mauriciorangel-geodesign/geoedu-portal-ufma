@@ -50,3 +50,6 @@ document.getElementById('zoom-in').onclick=()=>map.zoomIn();document.getElementB
 
 function softenGeographicGrid(){document.querySelectorAll('.graticule,.latlng-grid,.coordinate-grid').forEach(el=>{el.style.opacity='.22';el.style.strokeOpacity='.22';});}
 map.on('layeradd zoomend moveend',()=>requestAnimationFrame(softenGeographicGrid));softenGeographicGrid();
+
+function equalizeGeographicGrid(){document.querySelectorAll('.graticule,.latlng-grid,.coordinate-grid,.graticule path,.latlng-grid path,.coordinate-grid path').forEach(el=>{el.style.setProperty('opacity','.22','important');el.style.setProperty('stroke-opacity','.22','important');});}
+map.on('layeradd zoomend moveend',()=>requestAnimationFrame(equalizeGeographicGrid));equalizeGeographicGrid();
