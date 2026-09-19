@@ -70,3 +70,6 @@ body.properties-open #coords.coords-display{right:382px}
 .layer-row{display:flex;align-items:center;gap:5px;min-width:0}
 .layer-row>label{flex:0 1 auto;min-width:0;margin:0}
 .layer-row>.properties-btn{flex:0 0 30px;margin-left:2px}
+
+/* v1.7.4 — controles de simbologia conforme a geometria */
+.geometry-hint{margin:2px 0 9px;font-size:11px;color:#59736e}.geometry-control[hidden],#prop-fill-controls[hidden],#prop-dash-row[hidden]{display:none!important}
