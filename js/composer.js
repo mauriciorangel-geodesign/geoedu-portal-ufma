@@ -1,10 +1,10 @@
-/* GeoEdu Lab v2.1.7 — compositor de prévia A4. Exportação será disponibilizada após validação. */
+/* GeoEdu Lab v2.1.8 — compositor de prévia A4. Exportação será disponibilizada após validação. */
 (()=>{
 'use strict';
 const byId=id=>document.getElementById(id);
 const dialog=byId('composer-modal'),button=byId('btn-composer'),close=byId('composer-close');
 const preview=byId('composer-page'),status=byId('composer-status');
-let interactionsReady=false,layoutOrientation='landscape',composerZ=20,selectedElement=null,labelCount=0;const editedLegend=new Map();let previewMap=null,previewBase=null,previewVectors=[];let mapFrameObserver=null,autoFrame=true,resizeQueued=false;const edited=new Set();
+let interactionsReady=false,layoutOrientation='landscape',composerZ=20,selectedElement=null,labelCount=0;const editedLegend=new Map();let legendDraft=null;let previewMap=null,previewBase=null,previewVectors=[];let mapFrameObserver=null,autoFrame=true,resizeQueued=false;const edited=new Set();
 function activeBase(){
  const key=document.querySelector('input[name="basemap"]:checked')?.value||'sentinel';
  return key;
@@ -91,17 +91,7 @@ function selectElement(node){
  const isText=['composer-preview-title','composer-preview-subtitle','composer-source-display','composer-legend-display'].includes(node.id)||node.classList.contains('composer-user-label');
  textGroup.hidden=!isText;
  if(isText)textControl.value=parseFloat(textNode?.style.fontSize)||parseFloat(getComputedStyle(textNode).fontSize)||12;
- byId('composer-element-width').value=Math.round(node.offsetWidth);
- byId('composer-element-height').value=Math.round(node.offsetHeight);
-}
-function applyElementSize(){
- const node=selectedElement;if(!node)return;
- const w=Number(byId('composer-element-width').value),h=Number(byId('composer-element-height').value);
- if(Number.isFinite(w)&&w>0)node.style.width=Math.min(w,preview.clientWidth-node.offsetLeft)+'px';
- if(Number.isFinite(h)&&h>0)node.style.height=Math.min(h,preview.clientHeight-node.offsetTop)+'px';
- if(node.id==='composer-legend-display')fitLegend();
- if(node.id==='composer-scale-display')updateScale();
- if(node.classList.contains('composer-map-row'))requestAnimationFrame(fitFrame);
+ byId('composer-delete-label').hidden=!node.classList.contains('composer-user-label');
 }
 function fitFrame(){
  if(!previewMap||dialog.hidden)return;
@@ -222,25 +212,29 @@ function updatePreview(){
  const legendBox=byId('composer-legend-display');
  const previous=legendBox.querySelector('.composer-legend-content');
  const savedFont=previous?.style.fontSize||'';
+ if(legendDraft===null){
+  const raw=custom||legend?.innerHTML||'Nenhuma camada temática visível.';
+  const staging=document.createElement('div');
+  if(custom)staging.textContent=custom;else staging.innerHTML=raw;
+  staging.querySelectorAll('button,input,select,hr').forEach(el=>el.remove());
+  staging.querySelectorAll('*').forEach(el=>{el.style.borderTop='none';el.style.borderBottom='none';el.style.boxShadow='none';});
+  legendDraft=staging.innerHTML;
+ }
  setElementContent(legendBox,'<div class="composer-legend-content"></div>');
  const legendContent=legendBox.querySelector('.composer-legend-content');
- if(custom)legendContent.textContent=custom;
- else legendContent.innerHTML=legend?.innerHTML||'Nenhuma camada temática visível.';
+ legendContent.innerHTML=legendDraft;
  legendContent.style.fontSize=savedFont;
- legendContent.querySelectorAll('button,input,select').forEach(el=>el.remove());
- legendContent.querySelectorAll('*').forEach(el=>{
-  if(el.matches('hr'))el.remove();
-  else{el.style.borderTop='none';el.style.borderBottom='none';el.style.boxShadow='none';}
+ // Editing is enabled on the whole legend: nested Leaflet markup no longer intercepts double-click.
+ legendContent.addEventListener('dblclick',event=>{
+  event.stopPropagation();event.preventDefault();
+  legendContent.contentEditable='true';legendContent.focus();
+  const selection=window.getSelection(),range=document.createRange();
+  const leaf=event.target.closest('span,p,li,strong')||event.target;
+  if(leaf&&legendContent.contains(leaf)){range.selectNodeContents(leaf);range.collapse(false);selection.removeAllRanges();selection.addRange(range);}
  });
- legendContent.querySelectorAll('span,p,div,li,strong').forEach(el=>{
-  if(el.children.length===0&&el.textContent.trim()){
-   const key=el.textContent.trim();if(editedLegend.has(key))el.textContent=editedLegend.get(key);
-   el.addEventListener('dblclick',e=>{e.stopPropagation();el.contentEditable='true';el.focus();});
-   el.addEventListener('blur',()=>{el.contentEditable='false';editedLegend.set(key,el.textContent);requestAnimationFrame(fitLegend);});
-   el.addEventListener('pointerdown',e=>{if(el.contentEditable==='true')e.stopPropagation();});
-  }
- });
- legendContent.addEventListener('input',()=>requestAnimationFrame(fitLegend));
+ legendContent.addEventListener('pointerdown',event=>{if(legendContent.isContentEditable)event.stopPropagation();});
+ legendContent.addEventListener('input',()=>{legendDraft=legendContent.innerHTML;requestAnimationFrame(fitLegend);});
+ legendContent.addEventListener('blur',()=>{legendDraft=legendContent.innerHTML;legendContent.contentEditable='false';requestAnimationFrame(fitLegend);});
  requestAnimationFrame(fitLegend);
  byId('composer-attribution').textContent='Créditos do mapa-base: '+(previewBase?.getAttribution?.()||'Consulte as fontes do mapa principal.');
  status.textContent='Preparando camadas temáticas visíveis…';setTimeout(()=>{if(dialog.hidden)return;try{const count=cloneThemes();status.textContent='Prévia atualizada: '+count+' camada(s) temática(s) visível(is), com simbologia atual. O enquadramento segue o mapa principal.';}catch(err){status.textContent='Falha ao reproduzir camadas temáticas: '+err.message;}},0);
@@ -261,15 +255,16 @@ document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!dialog.hid
 byId('composer-add-label').addEventListener('click',()=>{
  const node=document.createElement('div');node.id='composer-user-label-'+(++labelCount);node.className='composer-movable composer-user-label';node.textContent=byId('composer-new-label').value.trim()||'Novo texto';node.contentEditable='true';Object.assign(node.style,{position:'absolute',left:'25px',top:'25px',width:'170px',height:'35px',fontSize:'14px'});preview.appendChild(node);makeInteractive(node);selectElement(node);
 });
+byId('composer-delete-label').addEventListener('click',()=>{if(!selectedElement?.classList.contains('composer-user-label'))return;selectedElement.remove();selectedElement=null;byId('composer-selected-name').textContent='Clique em um elemento na página';byId('composer-text-tools').hidden=true;byId('composer-delete-label').hidden=true;});
 byId('composer-font-size').addEventListener('input',e=>{if(!selectedElement)return;const target=selectedElement.id==='composer-legend-display'?selectedElement.querySelector('.composer-legend-content'):selectedElement;if(!target)return;target.style.fontSize=e.target.value+'px';if(selectedElement.id==='composer-legend-display')fitLegend();});
-['composer-element-width','composer-element-height'].forEach(id=>byId(id).addEventListener('input',applyElementSize));
+
 byId('composer-refresh').addEventListener('click',updatePreview);byId('composer-fit').addEventListener('click',()=>{autoFrame=true;fitFrame();});byId('composer-zoom-in').addEventListener('click',()=>{autoFrame=false;previewMap?.zoomIn();});byId('composer-zoom-out').addEventListener('click',()=>{autoFrame=false;previewMap?.zoomOut();});byId('composer-orientation').addEventListener('change',()=>{requestAnimationFrame(()=>{previewMap?.invalidateSize({pan:false});fitFrame();});});
 ['composer-map-title','composer-subtitle','composer-orientation','composer-legend','composer-north','composer-scale','composer-source','composer-source-text','composer-north-style'].forEach(id=>byId(id).addEventListener('input',updateLayout));
 ['composer-preview-title','composer-preview-subtitle','composer-source-display'].forEach(id=>byId(id).addEventListener('input',()=>edited.add(id)));byId('composer-legend-text').addEventListener('input',()=>{
  const v=byId('composer-legend-text').value.trim();
- if(!v){updatePreview();return;}
+ legendDraft=null;if(!v){updatePreview();return;}
  const box=byId('composer-legend-display');
  let content=box.querySelector(':scope > .composer-legend-content');
  if(!content){setElementContent(box,'<div class="composer-legend-content"></div>');content=box.querySelector('.composer-legend-content');}
- content.textContent=v;requestAnimationFrame(fitLegend);
+ content.textContent=v;legendDraft=content.innerHTML;requestAnimationFrame(fitLegend);
 });})();
