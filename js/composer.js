@@ -1,4 +1,4 @@
-/* GeoEdu Lab v2.0.7 — compositor de prévia A4. Exportação será disponibilizada após validação. */
+/* GeoEdu Lab v2.0.8 — compositor de prévia A4. Exportação será disponibilizada após validação. */
 (()=>{
 'use strict';
 const byId=id=>document.getElementById(id);
@@ -77,50 +77,37 @@ function fitFrame(){
 }
 function installInteractions(){
  const nodes=[...preview.querySelectorAll('.composer-movable'),preview.querySelector('.composer-map-row')];
- for(const node of nodes){
-  node.classList.add('composer-interactive');
-  const mapFrame=node.classList.contains('composer-map-row');
-  const moveHandle=document.createElement('button');
-  moveHandle.type='button';moveHandle.className='composer-move-handle';moveHandle.textContent='✥';moveHandle.title='Arrastar elemento';moveHandle.setAttribute('aria-label','Mover elemento');
-  node.appendChild(moveHandle);
+ const pageRect=()=>preview.getBoundingClientRect();
+ // Remove each item from header/footer flex flow. Positions are recorded before moving nodes.
+ const positions=nodes.map(node=>{const r=node.getBoundingClientRect(),p=pageRect();return {node,x:r.left-p.left,y:r.top-p.top,w:r.width,h:r.height};});
+ for(const item of positions){
+  const {node,x,y,w,h}=item,mapFrame=node.classList.contains('composer-map-row');
+  preview.appendChild(node);node.classList.add('composer-interactive');
+  Object.assign(node.style,{position:'absolute',left:x+'px',top:y+'px',width:w+'px',height:h+'px',margin:'0',maxWidth:'none'});
+  const moveHandle=document.createElement('button');moveHandle.type='button';moveHandle.className='composer-move-handle';moveHandle.textContent='✥';moveHandle.title='Mover elemento';moveHandle.setAttribute('aria-label','Mover elemento');node.appendChild(moveHandle);
   const start=(event,mode)=>{
    if(event.button!==0)return;
    event.preventDefault();event.stopPropagation();
-   const rect=node.getBoundingClientRect(),page=preview.getBoundingClientRect();
-   const origin={x:event.clientX,y:event.clientY,w:rect.width,h:rect.height,l:rect.left-page.left,t:rect.top-page.top};
+   const p=pageRect(),rect=node.getBoundingClientRect();
+   const o={x:event.clientX,y:event.clientY,w:rect.width,h:rect.height,l:rect.left-p.left,t:rect.top-p.top};
    const minW=mapFrame?150:node.id==='composer-legend-display'?120:55,minH=mapFrame?140:35;
-   if(getComputedStyle(node).position!=='absolute'){
-    node.style.position='absolute';node.style.left=origin.l+'px';node.style.top=origin.t+'px';node.style.margin='0';
-    node.style.width=origin.w+'px';node.style.height=origin.h+'px';
-   }
    const target=event.currentTarget;target.setPointerCapture(event.pointerId);
    const drag=e=>{
-    const dx=e.clientX-origin.x,dy=e.clientY-origin.y;
-    let w=origin.w,h=origin.h,l=origin.l,t=origin.t;
+    const dx=e.clientX-o.x,dy=e.clientY-o.y;let w=o.w,h=o.h,l=o.l,t=o.t;
     if(mode==='move'){l+=dx;t+=dy;}
-    else{
-     if(mode.includes('e'))w+=dx;
-     if(mode.includes('s'))h+=dy;
-     if(mode.includes('w')){w-=dx;l+=dx;}
-     if(mode.includes('n')){h-=dy;t+=dy;}
-    }
+    else{if(mode.includes('e'))w+=dx;if(mode.includes('s'))h+=dy;if(mode.includes('w')){w-=dx;l+=dx;}if(mode.includes('n')){h-=dy;t+=dy;}}
     if(w<minW){if(mode.includes('w'))l-=minW-w;w=minW;}
     if(h<minH){if(mode.includes('n'))t-=minH-h;h=minH;}
-    l=Math.max(0,Math.min(l,page.width-w));t=Math.max(0,Math.min(t,page.height-h));
-    w=Math.min(w,page.width-l);h=Math.min(h,page.height-t);
-    node.style.left=l+'px';node.style.top=t+'px';node.style.width=w+'px';node.style.height=h+'px';
-    if(mapFrame){previewMap?.invalidateSize({pan:false});updateScale();}
+    l=Math.max(0,Math.min(l,p.width-minW));t=Math.max(0,Math.min(t,p.height-minH));
+    w=Math.max(minW,Math.min(w,p.width-l));h=Math.max(minH,Math.min(h,p.height-t));
+    Object.assign(node.style,{left:l+'px',top:t+'px',width:w+'px',height:h+'px'});
     if(node.id==='composer-legend-display')fitLegend();
    };
    const finish=()=>{target.removeEventListener('pointermove',drag);target.removeEventListener('pointerup',finish);target.removeEventListener('pointercancel',finish);if(mapFrame)requestAnimationFrame(fitFrame);};
    target.addEventListener('pointermove',drag);target.addEventListener('pointerup',finish,{once:true});target.addEventListener('pointercancel',finish,{once:true});
   };
   moveHandle.addEventListener('pointerdown',e=>start(e,'move'));
-  for(const direction of ['n','ne','e','se','s','sw','w','nw']){
-   const handle=document.createElement('span');handle.className='composer-resize-handle side-'+direction;
-   handle.setAttribute('aria-label','Redimensionar '+direction);
-   handle.addEventListener('pointerdown',e=>start(e,direction));node.appendChild(handle);
-  }
+  for(const direction of ['n','ne','e','se','s','sw','w','nw']){const handle=document.createElement('span');handle.className='composer-resize-handle side-'+direction;handle.setAttribute('aria-label','Redimensionar '+direction);handle.addEventListener('pointerdown',e=>start(e,direction));node.appendChild(handle);}
  }
 }
 function updateLayout(){
@@ -145,7 +132,7 @@ function updatePreview(){
  previewMap.invalidateSize({pan:false});fitFrame();
  updateScale();
  const legend=byId('legend-content');
- const custom=byId('composer-legend-text').value.trim();byId('composer-legend-display').innerHTML=custom?'':legend?.innerHTML||'Nenhuma camada temática visível.';if(custom)byId('composer-legend-display').textContent=custom;requestAnimationFrame(fitLegend);byId('composer-attribution').textContent='Créditos do mapa-base: '+(previewBase?.getAttribution?.()||'Consulte as fontes do mapa principal.');
+ const custom=byId('composer-legend-text').value.trim();const legendBox=byId('composer-legend-display');const handles=[...legendBox.querySelectorAll('.composer-resize-handle,.composer-move-handle')];handles.forEach(el=>el.remove());legendBox.innerHTML=custom?'':legend?.innerHTML||'Nenhuma camada temática visível.';if(custom)legendBox.textContent=custom;handles.forEach(el=>legendBox.appendChild(el));requestAnimationFrame(fitLegend);byId('composer-attribution').textContent='Créditos do mapa-base: '+(previewBase?.getAttribution?.()||'Consulte as fontes do mapa principal.');
  status.textContent='Preparando camadas temáticas visíveis…';setTimeout(()=>{if(dialog.hidden)return;try{const count=cloneThemes();status.textContent='Prévia atualizada: '+count+' camada(s) temática(s) visível(is), com simbologia atual. O enquadramento segue o mapa principal.';}catch(err){status.textContent='Falha ao reproduzir camadas temáticas: '+err.message;}},0);
  setTimeout(fitFrame,50);
 }
@@ -162,5 +149,5 @@ dialog.addEventListener('click',event=>{if(event.target===dialog)dismiss();});
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!dialog.hidden)dismiss();});
 byId('composer-refresh').addEventListener('click',updatePreview);byId('composer-fit').addEventListener('click',()=>{autoFrame=true;fitFrame();});byId('composer-zoom-in').addEventListener('click',()=>{autoFrame=false;previewMap?.zoomIn();});byId('composer-zoom-out').addEventListener('click',()=>{autoFrame=false;previewMap?.zoomOut();});byId('composer-orientation').addEventListener('change',()=>{requestAnimationFrame(()=>{previewMap?.invalidateSize({pan:false});fitFrame();});});
 ['composer-map-title','composer-subtitle','composer-orientation','composer-legend','composer-north','composer-scale','composer-source','composer-source-text','composer-north-style'].forEach(id=>byId(id).addEventListener('input',updateLayout));
-['composer-preview-title','composer-preview-subtitle','composer-source-display'].forEach(id=>byId(id).addEventListener('input',()=>edited.add(id)));byId('composer-legend-text').addEventListener('input',()=>{const v=byId('composer-legend-text').value.trim();if(v){byId('composer-legend-display').textContent=v;requestAnimationFrame(fitLegend);}else updatePreview();});installInteractions();
+['composer-preview-title','composer-preview-subtitle','composer-source-display'].forEach(id=>byId(id).addEventListener('input',()=>edited.add(id)));byId('composer-legend-text').addEventListener('input',()=>{const v=byId('composer-legend-text').value.trim();if(v){const box=byId('composer-legend-display');[...box.childNodes].filter(n=>!n.classList?.contains('composer-resize-handle')&&!n.classList?.contains('composer-move-handle')).forEach(n=>n.remove());box.prepend(document.createTextNode(v));requestAnimationFrame(fitLegend);}else updatePreview();});installInteractions();
 })();
