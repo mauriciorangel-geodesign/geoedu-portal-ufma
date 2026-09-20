@@ -186,3 +186,10 @@ body.properties-open #coords.coords-display{right:382px}
 /* v2.1.8: persistent legend editing */
 #composer-delete-label[hidden]{display:none!important}
 .composer-page #composer-legend-display .composer-legend-content[contenteditable=true]{cursor:text!important;user-select:text!important;outline:0!important}
+
+/* v2.1.9 — preserve unobtrusive controls while allowing legend drag and edit */
+.composer-page #composer-legend-display{cursor:move!important;touch-action:none!important;pointer-events:auto!important}
+.composer-page #composer-legend-display .composer-legend-content{pointer-events:auto!important;cursor:move!important;user-select:none!important;touch-action:none!important}
+.composer-page #composer-legend-display .composer-legend-content[contenteditable=true]{cursor:text!important;user-select:text!important;touch-action:auto!important;outline:0!important}
+.composer-page #composer-legend-display .composer-resize-handle{pointer-events:auto!important;z-index:3000!important}
+.composer-page .composer-interactive .composer-move-handle{pointer-events:auto!important}
