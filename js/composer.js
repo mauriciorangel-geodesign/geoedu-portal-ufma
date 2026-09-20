@@ -1,10 +1,10 @@
-/* GeoEdu Lab v2.1.8 — compositor de prévia A4. Exportação será disponibilizada após validação. */
+/* GeoEdu Lab v2.1.9 — compositor de prévia A4. Exportação será disponibilizada após validação. */
 (()=>{
 'use strict';
 const byId=id=>document.getElementById(id);
 const dialog=byId('composer-modal'),button=byId('btn-composer'),close=byId('composer-close');
 const preview=byId('composer-page'),status=byId('composer-status');
-let interactionsReady=false,layoutOrientation='landscape',composerZ=20,selectedElement=null,labelCount=0;const editedLegend=new Map();let legendEditing=false;let legendDraft=null;let previewMap=null,previewBase=null,previewVectors=[];let mapFrameObserver=null,autoFrame=true,resizeQueued=false;const edited=new Set();
+let interactionsReady=false,layoutOrientation='landscape',composerZ=20,selectedElement=null,labelCount=0;let legendDraft=null,legendEditing=false;let previewMap=null,previewBase=null,previewVectors=[];let mapFrameObserver=null,autoFrame=true,resizeQueued=false;const edited=new Set();
 function activeBase(){
  const key=document.querySelector('input[name="basemap"]:checked')?.value||'sentinel';
  return key;
@@ -121,7 +121,7 @@ function installInteractions(custom){
  for(const {node,x,y,w,h} of initial){
   const mapFrame=node.classList.contains('composer-map-row');
   node.addEventListener('pointerdown',()=>selectElement(node),{capture:true});
-  if(node.matches('[contenteditable]')){node.contentEditable='false';node.title='Arraste para mover; clique duas vezes para editar o texto';node.addEventListener('dblclick',e=>{e.stopPropagation();node.contentEditable='true';node.focus();});node.addEventListener('blur',()=>{node.contentEditable='false';});}
+  if(node.matches('[contenteditable]')&&node.id!=='composer-legend-display'){node.contentEditable='false';node.title='Arraste para mover; clique duas vezes para editar o texto';node.addEventListener('dblclick',e=>{e.stopPropagation();node.contentEditable='true';node.focus();});node.addEventListener('blur',()=>{node.contentEditable='false';});}
   preview.appendChild(node);
   node.classList.add('composer-interactive');
   Object.assign(node.style,{position:'absolute',left:x+'px',top:y+'px',width:w+'px',height:h+'px',margin:'0',maxWidth:'none',zIndex:String(++composerZ)});
@@ -165,7 +165,22 @@ function installInteractions(custom){
    target.addEventListener('pointercancel',finish,{once:true});
   };
   move.addEventListener('pointerdown',e=>start(e,'move'));
-  if(!mapFrame){node.addEventListener('pointerdown',e=>{if(e.target.closest('.composer-resize-handle,.composer-move-handle,input,textarea,button,select,a,[contenteditable="true"],.composer-legend-content'))return;start(e,'move');});}
+  if(node.id==='composer-legend-display'){
+   node.addEventListener('dblclick',e=>{
+    if(e.target.closest('.composer-resize-handle,.composer-move-handle'))return;
+    e.preventDefault();e.stopPropagation();
+    const content=node.querySelector('.composer-legend-content');if(!content)return;
+    legendEditing=true;content.contentEditable='true';content.style.zoom='1';content.focus();
+   });
+   node.addEventListener('focusout',e=>{
+    if(!node.contains(e.relatedTarget)&&legendEditing){
+     const content=node.querySelector('.composer-legend-content');
+     if(content){legendDraft=content.innerHTML;content.contentEditable='false';}
+     legendEditing=false;requestAnimationFrame(fitLegend);
+    }
+   });
+  }
+  if(!mapFrame){node.addEventListener('pointerdown',e=>{if(e.target.closest('.composer-resize-handle,.composer-move-handle,input,textarea,button,select,a,[contenteditable="true"]'))return;start(e,'move');});}
   for(const direction of ['n','ne','e','se','s','sw','w','nw']){
    const handle=document.createElement('span');handle.className='composer-resize-handle side-'+direction;
    handle.setAttribute('aria-label','Redimensionar '+direction);
@@ -219,32 +234,17 @@ function updatePreview(){
  updateScale();
  const legend=byId('legend-content'),custom=byId('composer-legend-text').value.trim();
  const legendBox=byId('composer-legend-display');
- const old=legendBox.querySelector('.composer-legend-content');
  if(!legendEditing){
-  const savedFont=old?.style.fontSize||'';
-  setElementContent(legendBox,'<div class="composer-legend-content"></div>');
-  const content=legendBox.querySelector('.composer-legend-content');
-  content.style.fontSize=savedFont;
-  if(custom)content.textContent=custom;
+  let content=legendBox.querySelector(':scope > .composer-legend-content');
+  const savedFont=content?.style.fontSize||'';
+  if(!content){content=document.createElement('div');content.className='composer-legend-content';legendBox.prepend(content);}
+  content.contentEditable='false';
+  if(legendDraft!==null)content.innerHTML=legendDraft;
+  else if(custom)content.textContent=custom;
   else content.innerHTML=legend?.innerHTML||'Nenhuma camada temática visível.';
+  content.style.fontSize=savedFont;
   content.querySelectorAll('button,input,select,hr').forEach(el=>el.remove());
   content.querySelectorAll('*').forEach(el=>{el.style.borderTop='none';el.style.borderBottom='none';el.style.boxShadow='none';});
-  // Edit the legend as one document: double-click to enter edit mode, click outside to save.
-  content.contentEditable='false';
-  content.addEventListener('dblclick',event=>{
-   event.stopPropagation();legendEditing=true;content.contentEditable='true';content.focus();
-   const selection=window.getSelection(),range=document.createRange();
-   if(event.target.nodeType===Node.ELEMENT_NODE){range.selectNodeContents(event.target);range.collapse(false);selection.removeAllRanges();selection.addRange(range);}
-  });
-  content.addEventListener('pointerdown',event=>{if(legendEditing)event.stopPropagation();});
-  content.addEventListener('blur',()=>{
-   if(!legendEditing)return;
-   legendEditing=false;content.contentEditable='false';
-   editedLegend.set('html',content.innerHTML);
-   requestAnimationFrame(fitLegend);
-  });
-  content.addEventListener('input',()=>{editedLegend.set('html',content.innerHTML);requestAnimationFrame(fitLegend);});
-  if(editedLegend.has('html')&&!custom)content.innerHTML=editedLegend.get('html');
  }
  requestAnimationFrame(fitLegend);
  byId('composer-attribution').textContent='Créditos do mapa-base: '+(previewBase?.getAttribution?.()||'Consulte as fontes do mapa principal.');
@@ -267,7 +267,6 @@ byId('composer-delete-label').addEventListener('click',()=>{if(!selectedElement?
 byId('composer-add-label').addEventListener('click',()=>{
  const node=document.createElement('div');node.id='composer-user-label-'+(++labelCount);node.className='composer-movable composer-user-label';node.textContent=byId('composer-new-label').value.trim()||'Novo texto';node.contentEditable='true';Object.assign(node.style,{position:'absolute',left:'25px',top:'25px',width:'170px',height:'35px',fontSize:'14px'});preview.appendChild(node);makeInteractive(node);selectElement(node);
 });
-byId('composer-delete-label').addEventListener('click',()=>{if(!selectedElement?.classList.contains('composer-user-label'))return;selectedElement.remove();selectedElement=null;byId('composer-selected-name').textContent='Clique em um elemento na página';byId('composer-text-tools').hidden=true;byId('composer-delete-label').hidden=true;});
 byId('composer-font-size').addEventListener('input',e=>{if(!selectedElement)return;const target=selectedElement.id==='composer-legend-display'?selectedElement.querySelector('.composer-legend-content'):selectedElement;if(!target)return;target.style.fontSize=e.target.value+'px';if(selectedElement.id==='composer-legend-display')fitLegend();});
 
 byId('composer-refresh').addEventListener('click',updatePreview);byId('composer-fit').addEventListener('click',()=>{autoFrame=true;fitFrame();});byId('composer-zoom-in').addEventListener('click',()=>{autoFrame=false;previewMap?.zoomIn();});byId('composer-zoom-out').addEventListener('click',()=>{autoFrame=false;previewMap?.zoomOut();});byId('composer-orientation').addEventListener('change',()=>{requestAnimationFrame(()=>{previewMap?.invalidateSize({pan:false});fitFrame();});});
