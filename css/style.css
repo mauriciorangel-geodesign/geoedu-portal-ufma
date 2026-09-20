@@ -75,3 +75,6 @@ body.properties-open #coords.coords-display{right:382px}
 .geometry-hint{margin:2px 0 9px;font-size:11px;color:#59736e}.geometry-control[hidden],#prop-fill-controls[hidden],#prop-dash-row[hidden]{display:none!important}
 
 .attribute-pagination{display:flex;align-items:center;justify-content:space-between;gap:5px;margin:6px 0;font-size:11px}.attribute-pagination button{border:1px solid #cbdad7;border-radius:5px;padding:4px 8px;background:white;color:#216d63;cursor:pointer}.attribute-pagination button:disabled{opacity:.4;cursor:default}
+
+/* v1.8.0 — legenda dinâmica */
+.legend-entry{display:flex;align-items:center;gap:9px;padding:8px 2px;border-bottom:1px solid rgba(9,87,91,.1);min-width:0}.legend-symbol{width:36px;flex:0 0 36px;display:flex;align-items:center}.legend-symbol svg{width:34px;height:24px;overflow:visible}.legend-name{font-size:12px;color:#284d48;min-width:0;overflow-wrap:anywhere}.legend-empty{font-size:12px;color:#647b76}
