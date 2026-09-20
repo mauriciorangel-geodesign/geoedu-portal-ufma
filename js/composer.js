@@ -1,10 +1,10 @@
-/* GeoEdu Lab v2.0.4 — compositor de prévia A4. Exportação será disponibilizada após validação. */
+/* GeoEdu Lab v2.0.5 — compositor de prévia A4. Exportação será disponibilizada após validação. */
 (()=>{
 'use strict';
 const byId=id=>document.getElementById(id);
 const dialog=byId('composer-modal'),button=byId('btn-composer'),close=byId('composer-close');
 const preview=byId('composer-page'),status=byId('composer-status');
-let previewMap=null,previewBase=null,previewVectors=[];const edited=new Set();
+let previewMap=null,previewBase=null,previewVectors=[];let mapFrameObserver=null;const edited=new Set();
 function activeBase(){
  const key=document.querySelector('input[name="basemap"]:checked')?.value||'sentinel';
  return key;
@@ -61,7 +61,19 @@ function updateScale(){
  const power=Math.pow(10,Math.floor(Math.log10(distance))),ratio=distance/power;
  const metres=(ratio>=5?5:ratio>=2?2:1)*power,unit=metres>=1000?'km':'m',value=unit==='km'?metres/1000:metres;
  holder.innerHTML='<div class="scale-values"><span>0</span><span>'+Number((value/2).toPrecision(3))+'</span><span>'+Number(value.toPrecision(3))+' '+unit+'</span></div><div class="scale-segments"><i></i><i></i><i></i><i></i></div>';
- holder.querySelector('.scale-segments').style.width=Math.max(35,Math.min(180,130*metres/distance))+'px';
+ holder.querySelector('.scale-segments').style.width='100%';
+}
+function fitLegend(){
+ const node=byId('composer-legend-display');if(!node||node.hidden)return;
+ node.style.fontSize='10px';
+ for(let size=10;size>=7;size-=.5){node.style.fontSize=size+'px';if(node.scrollHeight<=node.clientHeight+2&&node.scrollWidth<=node.clientWidth+2)break;}
+}
+function fitFrame(){
+ if(!previewMap||dialog.hidden)return;
+ previewMap.invalidateSize({pan:false});
+ const bounds=map.getBounds();
+ if(bounds.isValid())previewMap.fitBounds(bounds,{animate:false,padding:[8,8],maxZoom:map.getZoom()+2});
+ updateScale();
 }
 function installDrag(){
  for(const node of preview.querySelectorAll('.composer-movable')){
@@ -84,7 +96,7 @@ function updateLayout(){
  byId('composer-scale-display').hidden=!byId('composer-scale').checked;
  byId('composer-source-display').hidden=!byId('composer-source').checked;
  if(!edited.has('composer-source-display'))byId('composer-source-display').textContent='Fonte: '+byId('composer-source-text').value.trim();northStyle();if(previewMap)updateScale();
- if(previewMap){setTimeout(()=>{previewMap.invalidateSize();updateScale();},0);}
+ if(previewMap){requestAnimationFrame(fitFrame);}
 }
 function updatePreview(){
  updateLayout();
@@ -94,14 +106,14 @@ function updatePreview(){
  }
  if(previewBase)previewMap.removeLayer(previewBase);
  previewBase=newBase(activeBase()).addTo(previewMap);
- previewMap.invalidateSize({pan:false});previewMap.setView(map.getCenter(),map.getZoom(),{animate:false});
+ previewMap.invalidateSize({pan:false});fitFrame();
  updateScale();
  const legend=byId('legend-content');
- const custom=byId('composer-legend-text').value.trim();byId('composer-legend-display').innerHTML=custom?'':legend?.innerHTML||'Nenhuma camada temática visível.';if(custom)byId('composer-legend-display').textContent=custom;byId('composer-attribution').textContent='Créditos do mapa-base: '+(previewBase?.getAttribution?.()||'Consulte as fontes do mapa principal.');
+ const custom=byId('composer-legend-text').value.trim();byId('composer-legend-display').innerHTML=custom?'':legend?.innerHTML||'Nenhuma camada temática visível.';if(custom)byId('composer-legend-display').textContent=custom;requestAnimationFrame(fitLegend);byId('composer-attribution').textContent='Créditos do mapa-base: '+(previewBase?.getAttribution?.()||'Consulte as fontes do mapa principal.');
  status.textContent='Preparando camadas temáticas visíveis…';setTimeout(()=>{if(dialog.hidden)return;try{const count=cloneThemes();status.textContent='Prévia atualizada: '+count+' camada(s) temática(s) visível(is), com simbologia atual. O enquadramento segue o mapa principal.';}catch(err){status.textContent='Falha ao reproduzir camadas temáticas: '+err.message;}},0);
- setTimeout(()=>previewMap.invalidateSize(),50);
+ setTimeout(fitFrame,50);
 }
-const resizeObserver=new ResizeObserver(()=>{if(previewMap&&!dialog.hidden){previewMap.invalidateSize();updateScale();}});resizeObserver.observe(byId('composer-map'));
+const resizeObserver=new ResizeObserver(()=>{if(previewMap&&!dialog.hidden)requestAnimationFrame(fitFrame);});resizeObserver.observe(document.querySelector('.composer-map-row'));const legendObserver=new ResizeObserver(()=>requestAnimationFrame(fitLegend));legendObserver.observe(byId('composer-legend-display'));
 function open(){
  dialog.hidden=false;
  updatePreview();
@@ -114,5 +126,5 @@ dialog.addEventListener('click',event=>{if(event.target===dialog)dismiss();});
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!dialog.hidden)dismiss();});
 byId('composer-refresh').addEventListener('click',updatePreview);
 ['composer-map-title','composer-subtitle','composer-orientation','composer-legend','composer-north','composer-scale','composer-source','composer-source-text','composer-north-style'].forEach(id=>byId(id).addEventListener('input',updateLayout));
-['composer-preview-title','composer-preview-subtitle','composer-source-display'].forEach(id=>byId(id).addEventListener('input',()=>edited.add(id)));byId('composer-legend-text').addEventListener('input',()=>{const v=byId('composer-legend-text').value.trim();if(v)byId('composer-legend-display').textContent=v;else updatePreview();});installDrag();
+['composer-preview-title','composer-preview-subtitle','composer-source-display'].forEach(id=>byId(id).addEventListener('input',()=>edited.add(id)));byId('composer-legend-text').addEventListener('input',()=>{const v=byId('composer-legend-text').value.trim();if(v){byId('composer-legend-display').textContent=v;requestAnimationFrame(fitLegend);}else updatePreview();});installDrag();
 })();
