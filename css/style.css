@@ -182,3 +182,7 @@ body.properties-open #coords.coords-display{right:382px}
 .composer-page #composer-north-mark:not([hidden]) svg{width:100%!important;height:100%!important;display:block!important;object-fit:contain!important}
 .composer-page #composer-legend-display .composer-legend-content[contenteditable=true]{cursor:text!important;user-select:text!important;outline:none!important}
 #composer-delete-label[hidden]{display:none!important}
+
+/* v2.1.8: persistent legend editing */
+#composer-delete-label[hidden]{display:none!important}
+.composer-page #composer-legend-display .composer-legend-content[contenteditable=true]{cursor:text!important;user-select:text!important;outline:0!important}
