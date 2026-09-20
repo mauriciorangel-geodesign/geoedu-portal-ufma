@@ -78,3 +78,10 @@ body.properties-open #coords.coords-display{right:382px}
 
 /* v1.8.0 — legenda dinâmica */
 .legend-entry{display:flex;align-items:center;gap:9px;padding:8px 2px;border-bottom:1px solid rgba(9,87,91,.1);min-width:0}.legend-symbol{width:36px;flex:0 0 36px;display:flex;align-items:center}.legend-symbol svg{width:34px;height:24px;overflow:visible}.legend-name{font-size:12px;color:#284d48;min-width:0;overflow-wrap:anywhere}.legend-empty{font-size:12px;color:#647b76}
+
+/* v1.8.1 — alinhamento uniforme de nomes e ícones de propriedades */
+#panel-layers .layer-row{display:grid;grid-template-columns:minmax(0,1fr) 30px;align-items:center;column-gap:8px;width:100%;box-sizing:border-box}
+#panel-layers .layer-row>label{display:grid;grid-template-columns:16px minmax(0,1fr);align-items:center;column-gap:7px;min-width:0;width:100%;margin:0;line-height:1.35}
+#panel-layers .layer-row>label>input[type="checkbox"]{margin:0;justify-self:center;align-self:center}
+#panel-layers .layer-row .layer-name{display:block;min-width:0;overflow-wrap:break-word}
+#panel-layers .layer-row>.properties-btn{grid-column:2;justify-self:center;align-self:center;flex:none;margin:0;width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box}
