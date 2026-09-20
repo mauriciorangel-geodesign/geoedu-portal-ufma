@@ -177,3 +177,8 @@ body.properties-open #coords.coords-display{right:382px}
 .composer-page #composer-legend-display .composer-legend-content{background:transparent!important;outline:none!important}
 .composer-page #composer-legend-display .composer-legend-content [contenteditable=true]{cursor:text!important;user-select:text!important}
 .composer-page .composer-user-label{background:transparent!important;border:0!important;overflow-wrap:anywhere!important;white-space:pre-wrap!important}
+
+/* v2.1.8 — neutral cartographic north symbols and clean legend editing */
+.composer-page #composer-north-mark:not([hidden]) svg{width:100%!important;height:100%!important;display:block!important;object-fit:contain!important}
+.composer-page #composer-legend-display .composer-legend-content[contenteditable=true]{cursor:text!important;user-select:text!important;outline:none!important}
+#composer-delete-label[hidden]{display:none!important}
