@@ -1,4 +1,4 @@
-/* GeoEdu Lab v2.1.4 — compositor de prévia A4. Exportação será disponibilizada após validação. */
+/* GeoEdu Lab v2.1.5 — compositor de prévia A4. Exportação será disponibilizada após validação. */
 (()=>{
 'use strict';
 const byId=id=>document.getElementById(id);
@@ -74,10 +74,22 @@ function updateScale(){
  setElementContent(holder,'<div class="composer-scale-graphic" style="width:'+width+'px"><div class="scale-values"><span>0</span><span>'+fmt(value/2)+'</span><span>'+fmt(value)+' '+unit+'</span></div><div class="scale-segments"><i></i><i></i><i></i><i></i></div></div>');
 }
 function fitLegend(){
- const node=byId('composer-legend-display');if(!node||node.hidden)return;
- node.style.fontSize='10px';
- for(let size=10;size>=7;size-=.5){node.style.fontSize=size+'px';if(node.scrollHeight<=node.clientHeight+2&&node.scrollWidth<=node.clientWidth+2)break;}
- node.classList.toggle('composer-legend-overflow',node.scrollHeight>node.clientHeight+2||node.scrollWidth>node.clientWidth+2);
+ const node=byId('composer-legend-display');
+ if(!node||node.hidden||!node.clientWidth||!node.clientHeight)return;
+ let content=node.querySelector(':scope > .composer-legend-content');
+ if(!content)return;
+ content.style.zoom='1';
+ content.style.width='100%';
+ // Scale symbols, text and spacing together; never scale the resize/move controls.
+ const availableW=Math.max(1,node.clientWidth-12),availableH=Math.max(1,node.clientHeight-12);
+ let low=.3,high=1,fit=.3;
+ for(let i=0;i<12;i++){
+  const scale=(low+high)/2;
+  content.style.zoom=String(scale);
+  if(content.scrollWidth<=availableW+1&&content.scrollHeight<=availableH+1){fit=scale;low=scale;}else high=scale;
+ }
+ content.style.zoom=String(fit);
+ node.dataset.legendFits=String(content.scrollWidth<=availableW+1&&content.scrollHeight<=availableH+1);
 }
 function fitFrame(){
  if(!previewMap||dialog.hidden)return;
@@ -91,6 +103,7 @@ function installInteractions(){
  const initial=nodes.map(node=>{const r=node.getBoundingClientRect(),p=page();return {node,x:r.left-p.left,y:r.top-p.top,w:r.width,h:r.height};});
  for(const {node,x,y,w,h} of initial){
   const mapFrame=node.classList.contains('composer-map-row');
+  if(node.matches('[contenteditable]')){node.contentEditable='false';node.title='Arraste para mover; clique duas vezes para editar o texto';node.addEventListener('dblclick',e=>{e.stopPropagation();node.contentEditable='true';node.focus();});node.addEventListener('blur',()=>{node.contentEditable='false';});}
   preview.appendChild(node);
   node.classList.add('composer-interactive');
   Object.assign(node.style,{position:'absolute',left:x+'px',top:y+'px',width:w+'px',height:h+'px',margin:'0',maxWidth:'none',zIndex:String(++composerZ)});
@@ -185,7 +198,7 @@ function updatePreview(){
  previewMap.invalidateSize({pan:false});fitFrame();
  updateScale();
  const legend=byId('legend-content');
- const custom=byId('composer-legend-text').value.trim();const legendBox=byId('composer-legend-display');setElementContent(legendBox,custom||legend?.innerHTML||'Nenhuma camada temática visível.',!!custom);requestAnimationFrame(fitLegend);byId('composer-attribution').textContent='Créditos do mapa-base: '+(previewBase?.getAttribution?.()||'Consulte as fontes do mapa principal.');
+ const custom=byId('composer-legend-text').value.trim();const legendBox=byId('composer-legend-display');setElementContent(legendBox,'<div class="composer-legend-content"></div>');const legendContent=legendBox.querySelector('.composer-legend-content');if(custom)legendContent.textContent=custom;else legendContent.innerHTML=legend?.innerHTML||'Nenhuma camada temática visível.';requestAnimationFrame(fitLegend);byId('composer-attribution').textContent='Créditos do mapa-base: '+(previewBase?.getAttribution?.()||'Consulte as fontes do mapa principal.');
  status.textContent='Preparando camadas temáticas visíveis…';setTimeout(()=>{if(dialog.hidden)return;try{const count=cloneThemes();status.textContent='Prévia atualizada: '+count+' camada(s) temática(s) visível(is), com simbologia atual. O enquadramento segue o mapa principal.';}catch(err){status.textContent='Falha ao reproduzir camadas temáticas: '+err.message;}},0);
  setTimeout(fitFrame,50);
 }
@@ -203,4 +216,11 @@ dialog.addEventListener('click',event=>{if(event.target===dialog)dismiss();});
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!dialog.hidden)dismiss();});
 byId('composer-refresh').addEventListener('click',updatePreview);byId('composer-fit').addEventListener('click',()=>{autoFrame=true;fitFrame();});byId('composer-zoom-in').addEventListener('click',()=>{autoFrame=false;previewMap?.zoomIn();});byId('composer-zoom-out').addEventListener('click',()=>{autoFrame=false;previewMap?.zoomOut();});byId('composer-orientation').addEventListener('change',()=>{requestAnimationFrame(()=>{previewMap?.invalidateSize({pan:false});fitFrame();});});
 ['composer-map-title','composer-subtitle','composer-orientation','composer-legend','composer-north','composer-scale','composer-source','composer-source-text','composer-north-style'].forEach(id=>byId(id).addEventListener('input',updateLayout));
-['composer-preview-title','composer-preview-subtitle','composer-source-display'].forEach(id=>byId(id).addEventListener('input',()=>edited.add(id)));byId('composer-legend-text').addEventListener('input',()=>{const v=byId('composer-legend-text').value.trim();if(v){const box=byId('composer-legend-display');[...box.childNodes].filter(n=>!n.classList?.contains('composer-resize-handle')&&!n.classList?.contains('composer-move-handle')).forEach(n=>n.remove());box.prepend(document.createTextNode(v));requestAnimationFrame(fitLegend);}else updatePreview();});})();
+['composer-preview-title','composer-preview-subtitle','composer-source-display'].forEach(id=>byId(id).addEventListener('input',()=>edited.add(id)));byId('composer-legend-text').addEventListener('input',()=>{
+ const v=byId('composer-legend-text').value.trim();
+ if(!v){updatePreview();return;}
+ const box=byId('composer-legend-display');
+ let content=box.querySelector(':scope > .composer-legend-content');
+ if(!content){setElementContent(box,'<div class="composer-legend-content"></div>');content=box.querySelector('.composer-legend-content');}
+ content.textContent=v;requestAnimationFrame(fitLegend);
+});})();
