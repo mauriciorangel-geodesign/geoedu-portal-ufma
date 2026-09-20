@@ -1,10 +1,10 @@
-/* GeoEdu Lab v2.0.0 — compositor de prévia A4. Exportação será disponibilizada após validação. */
+/* GeoEdu Lab v2.0.1 — compositor de prévia A4. Exportação será disponibilizada após validação. */
 (()=>{
 'use strict';
 const byId=id=>document.getElementById(id);
 const dialog=byId('composer-modal'),button=byId('btn-composer'),close=byId('composer-close');
 const preview=byId('composer-page'),status=byId('composer-status');
-let previewMap=null,previewBase=null;
+let previewMap=null,previewBase=null,previewVectors=[];
 function activeBase(){
  const key=document.querySelector('input[name="basemap"]:checked')?.value||'sentinel';
  return key;
@@ -16,6 +16,38 @@ function newBase(key){
  L.tileLayer(grayLabels._url,{maxZoom:16,attribution:esriAttr})]);
  const source=basemaps[key]||basemaps.sentinel;
  return L.tileLayer(source._url,{minZoom:source.options.minZoom||0,maxZoom:source.options.maxZoom||18,maxNativeZoom:source.options.maxNativeZoom,attribution:source.options.attribution||''});
+}
+function clearVectors(){previewVectors.forEach(layer=>previewMap.removeLayer(layer));previewVectors=[];}
+function visibleThemeKeys(){
+ return ['maranhao','municipios','local','drenagem','sedes'].filter(k=>{
+ const layer=thematicLayerByKey(k);
+ return layer&&map.hasLayer(layer);
+ });
+}
+function cloneThemes(){
+ clearVectors();
+ const keys=visibleThemeKeys();
+ const renderer=L.canvas({padding:.2});
+ for(const k of keys){
+  const source=thematicLayerByKey(k);
+  // Reuse loaded features only; do not fetch or activate disabled layers.
+  const cloned=L.layerGroup();
+  source.eachLayer(child=>{
+   if(!child.feature||!child.toGeoJSON)return;
+   const f=child.toGeoJSON();
+   const opts={...child.options};
+   const style=categoryStyle(k,child.feature);
+   if(child instanceof L.CircleMarker){
+    const latlng=child.getLatLng();
+    L.circleMarker(latlng,{...style,radius:child.getRadius(),renderer,interactive:false}).addTo(cloned);
+   }else{
+    L.geoJSON(f,{style:()=>({...opts,...style,renderer,interactive:false}),interactive:false,renderer}).addTo(cloned);
+   }
+  });
+  cloned.addTo(previewMap);
+  previewVectors.push(cloned);
+ }
+ return keys.length;
 }
 function updateLayout(){
  byId('composer-preview-title').textContent=byId('composer-map-title').value.trim()||'Mapa sem título';
@@ -37,10 +69,10 @@ function updatePreview(){
  if(previewBase)previewMap.removeLayer(previewBase);
  previewBase=newBase(activeBase()).addTo(previewMap);
  previewMap.setView(map.getCenter(),map.getZoom(),{animate:false});
- byId('composer-scale-display').textContent='Escala gráfica e atribuições: no quadro do mapa';
+ byId('composer-scale-display').textContent='Escala gráfica no quadro do mapa';
  const legend=byId('legend-content');
- byId('composer-legend-display').textContent=legend?.innerText?.trim()||'Nenhuma camada temática visível.';
- status.textContent='Prévia A4 atualizada com o mapa-base e o enquadramento atuais. As camadas temáticas ainda não são reproduzidas nesta etapa.';
+ byId('composer-legend-display').innerHTML=legend?.innerHTML||'Nenhuma camada temática visível.';
+ status.textContent='Preparando camadas temáticas visíveis…';setTimeout(()=>{if(dialog.hidden)return;try{const count=cloneThemes();status.textContent='Prévia atualizada: '+count+' camada(s) temática(s) visível(is), com simbologia atual. O enquadramento segue o mapa principal.';}catch(err){status.textContent='Falha ao reproduzir camadas temáticas: '+err.message;}},0);
  setTimeout(()=>previewMap.invalidateSize(),50);
 }
 function open(){
