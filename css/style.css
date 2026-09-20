@@ -73,3 +73,5 @@ body.properties-open #coords.coords-display{right:382px}
 
 /* v1.7.4 — controles de simbologia conforme a geometria */
 .geometry-hint{margin:2px 0 9px;font-size:11px;color:#59736e}.geometry-control[hidden],#prop-fill-controls[hidden],#prop-dash-row[hidden]{display:none!important}
+
+.attribute-pagination{display:flex;align-items:center;justify-content:space-between;gap:5px;margin:6px 0;font-size:11px}.attribute-pagination button{border:1px solid #cbdad7;border-radius:5px;padding:4px 8px;background:white;color:#216d63;cursor:pointer}.attribute-pagination button:disabled{opacity:.4;cursor:default}
