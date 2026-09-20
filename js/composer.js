@@ -4,7 +4,7 @@
 const byId=id=>document.getElementById(id);
 const dialog=byId('composer-modal'),button=byId('btn-composer'),close=byId('composer-close');
 const preview=byId('composer-page'),status=byId('composer-status');
-let previewMap=null,previewBase=null,previewVectors=[];let mapFrameObserver=null,autoFrame=true,resizeQueued=false;const edited=new Set();
+let interactionsReady=false;let previewMap=null,previewBase=null,previewVectors=[];let mapFrameObserver=null,autoFrame=true,resizeQueued=false;const edited=new Set();
 function activeBase(){
  const key=document.querySelector('input[name="basemap"]:checked')?.value||'sentinel';
  return key;
@@ -139,6 +139,7 @@ function updatePreview(){
 const resizeObserver=new ResizeObserver(()=>{if(previewMap&&!dialog.hidden&&!resizeQueued){resizeQueued=true;requestAnimationFrame(()=>{resizeQueued=false;fitFrame();});}});resizeObserver.observe(document.querySelector('.composer-map-row'));const legendObserver=new ResizeObserver(()=>requestAnimationFrame(fitLegend));legendObserver.observe(byId('composer-legend-display'));
 function open(){
  dialog.hidden=false;
+ if(!interactionsReady){installInteractions();interactionsReady=true;}
  updatePreview();
  close.focus();
 }
@@ -149,5 +150,4 @@ dialog.addEventListener('click',event=>{if(event.target===dialog)dismiss();});
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!dialog.hidden)dismiss();});
 byId('composer-refresh').addEventListener('click',updatePreview);byId('composer-fit').addEventListener('click',()=>{autoFrame=true;fitFrame();});byId('composer-zoom-in').addEventListener('click',()=>{autoFrame=false;previewMap?.zoomIn();});byId('composer-zoom-out').addEventListener('click',()=>{autoFrame=false;previewMap?.zoomOut();});byId('composer-orientation').addEventListener('change',()=>{requestAnimationFrame(()=>{previewMap?.invalidateSize({pan:false});fitFrame();});});
 ['composer-map-title','composer-subtitle','composer-orientation','composer-legend','composer-north','composer-scale','composer-source','composer-source-text','composer-north-style'].forEach(id=>byId(id).addEventListener('input',updateLayout));
-['composer-preview-title','composer-preview-subtitle','composer-source-display'].forEach(id=>byId(id).addEventListener('input',()=>edited.add(id)));byId('composer-legend-text').addEventListener('input',()=>{const v=byId('composer-legend-text').value.trim();if(v){const box=byId('composer-legend-display');[...box.childNodes].filter(n=>!n.classList?.contains('composer-resize-handle')&&!n.classList?.contains('composer-move-handle')).forEach(n=>n.remove());box.prepend(document.createTextNode(v));requestAnimationFrame(fitLegend);}else updatePreview();});installInteractions();
-})();
+['composer-preview-title','composer-preview-subtitle','composer-source-display'].forEach(id=>byId(id).addEventListener('input',()=>edited.add(id)));byId('composer-legend-text').addEventListener('input',()=>{const v=byId('composer-legend-text').value.trim();if(v){const box=byId('composer-legend-display');[...box.childNodes].filter(n=>!n.classList?.contains('composer-resize-handle')&&!n.classList?.contains('composer-move-handle')).forEach(n=>n.remove());box.prepend(document.createTextNode(v));requestAnimationFrame(fitLegend);}else updatePreview();});})();
