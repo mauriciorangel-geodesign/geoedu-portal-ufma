@@ -168,3 +168,12 @@ body.properties-open #coords.coords-display{right:382px}
 .composer-page #composer-scale-display .composer-scale-graphic{max-width:100%!important}
 #composer-element-tools[hidden],#composer-text-tools[hidden]{display:none!important}
 #composer-element-tools input[type=number]{width:100%;box-sizing:border-box}
+
+/* v2.1.7 north visibility and borderless thematic legend */
+.composer-page #composer-north-mark:not([hidden]){display:flex!important;align-items:center!important;justify-content:center!important;visibility:visible!important;opacity:1!important;overflow:visible!important;background:transparent!important;color:#173f48!important;min-width:25px!important;min-height:30px!important}
+.composer-page #composer-north-mark:not([hidden]) svg{display:block!important;visibility:visible!important;opacity:1!important;width:100%!important;height:100%!important;flex:1 1 auto!important}
+.composer-page #composer-legend-display,.composer-page #composer-legend-display *{border-top-color:transparent!important;border-bottom-color:transparent!important;box-shadow:none!important}
+.composer-page #composer-legend-display hr{display:none!important}
+.composer-page #composer-legend-display .composer-legend-content{background:transparent!important;outline:none!important}
+.composer-page #composer-legend-display .composer-legend-content [contenteditable=true]{cursor:text!important;user-select:text!important}
+.composer-page .composer-user-label{background:transparent!important;border:0!important;overflow-wrap:anywhere!important;white-space:pre-wrap!important}
