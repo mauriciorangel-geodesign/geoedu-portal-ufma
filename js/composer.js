@@ -1,4 +1,4 @@
-/* GeoEdu Lab v2.0.2 — compositor de prévia A4. Exportação será disponibilizada após validação. */
+/* GeoEdu Lab v2.0.3 — compositor de prévia A4. Exportação será disponibilizada após validação. */
 (()=>{
 'use strict';
 const byId=id=>document.getElementById(id);
@@ -49,8 +49,19 @@ function cloneThemes(){
  }
  return keys.length;
 }
-function northStyle(){const type=byId('composer-north-style').value;byId('composer-north-mark').innerHTML=type==='compass'?'✦<br>N':type==='letter'?'N':'N<br>↑';}
-function scaleStyle(){const type=byId('composer-scale-style').value;const node=byId('composer-scale-display');node.textContent=type==='text'?'Escala aproximada — consulte a barra gráfica no mapa':type==='line'?'|────|────|':'▰▱▰▱';}
+function northStyle(){const type=byId('composer-north-style').value;const node=byId('composer-north-mark');const arrow='<svg viewBox="0 0 32 46" aria-hidden="true"><path d="M16 2L27 35 16 29 5 35Z" fill="#173f48" stroke="#173f48" stroke-width="1.5"/><path d="M16 2V29L5 35Z" fill="#fff"/><text x="16" y="45" text-anchor="middle" font-size="9" fill="#173f48">N</text></svg>';const compass='<svg viewBox="0 0 32 46" aria-hidden="true"><path d="M16 2L21 19 30 23 21 27 16 40 11 27 2 23 11 19Z" fill="#173f48" stroke="#173f48"/><path d="M16 2V40L11 27 2 23 11 19Z" fill="#fff"/><text x="16" y="45" text-anchor="middle" font-size="8" fill="#173f48">N</text></svg>';const needle='<svg viewBox="0 0 32 46" aria-hidden="true"><path d="M16 2L25 36 16 29 7 36Z" fill="#173f48"/><path d="M16 2L16 29 7 36Z" fill="#fff" stroke="#173f48"/><text x="16" y="45" text-anchor="middle" font-size="9" fill="#173f48">N</text></svg>';node.innerHTML=type==='compass'?compass:type==='needle'?needle:arrow;}
+function scaleStyle(){const node=byId('composer-scale-display');node.textContent='A escala gráfica proporcional é exibida no quadro do mapa.';}
+function updateScale(){
+ if(!previewMap)return;
+ const holder=byId('composer-scale-display');
+ const center=previewMap.getCenter(),width=previewMap.getSize().x;
+ if(width<2)return;
+ const a=previewMap.containerPointToLatLng([width*.35,previewMap.getSize().y/2]),b=previewMap.containerPointToLatLng([width*.65,previewMap.getSize().y/2]);
+ const metres=a.distanceTo(b),units=metres>=1000?'km':'m',total=metres>=1000?metres/1000:metres;
+ const nice=Math.pow(10,Math.floor(Math.log10(Math.max(total,1e-6))))*(total/Math.pow(10,Math.floor(Math.log10(Math.max(total,1e-6))))>=5?5:total/Math.pow(10,Math.floor(Math.log10(Math.max(total,1e-6))))>=2?2:1);
+ const px=width*.3*nice/total;holder.innerHTML='<div class="scale-values"><span>0</span><span>'+Number((nice/2).toPrecision(3))+'</span><span>'+Number(nice.toPrecision(3))+' '+units+'</span></div><div class="scale-segments"><i></i><i></i><i></i><i></i></div>';
+ holder.querySelector('.scale-segments').style.width=Math.max(40,Math.min(width*.55,px))+'px';
+}
 function installDrag(){
  for(const node of preview.querySelectorAll('.composer-movable')){
   node.addEventListener('pointerdown',event=>{
@@ -71,24 +82,25 @@ function updateLayout(){
  byId('composer-legend-display').hidden=!byId('composer-legend').checked;
  byId('composer-scale-display').hidden=!byId('composer-scale').checked;
  byId('composer-source-display').hidden=!byId('composer-source').checked;
- if(!edited.has('composer-source-display'))byId('composer-source-display').textContent='Fonte: '+byId('composer-source-text').value.trim();northStyle();scaleStyle();
- if(previewMap){setTimeout(()=>previewMap.invalidateSize(),0);}
+ if(!edited.has('composer-source-display'))byId('composer-source-display').textContent='Fonte: '+byId('composer-source-text').value.trim();northStyle();if(previewMap)updateScale();
+ if(previewMap){setTimeout(()=>{previewMap.invalidateSize();updateScale();},0);}
 }
 function updatePreview(){
  updateLayout();
  if(!previewMap){
  previewMap=L.map('composer-map',{zoomControl:false,preferCanvas:true,attributionControl:false,scrollWheelZoom:false});
- L.control.scale({imperial:false,position:'bottomleft'}).addTo(previewMap);
+ previewMap.on('moveend resize',updateScale);
  }
  if(previewBase)previewMap.removeLayer(previewBase);
  previewBase=newBase(activeBase()).addTo(previewMap);
  previewMap.setView(map.getCenter(),map.getZoom(),{animate:false});
- scaleStyle();
+ updateScale();
  const legend=byId('legend-content');
  const custom=byId('composer-legend-text').value.trim();byId('composer-legend-display').innerHTML=custom?'':legend?.innerHTML||'Nenhuma camada temática visível.';if(custom)byId('composer-legend-display').textContent=custom;byId('composer-attribution').textContent='Créditos do mapa-base: '+(previewBase?.getAttribution?.()||'Consulte as fontes do mapa principal.');
  status.textContent='Preparando camadas temáticas visíveis…';setTimeout(()=>{if(dialog.hidden)return;try{const count=cloneThemes();status.textContent='Prévia atualizada: '+count+' camada(s) temática(s) visível(is), com simbologia atual. O enquadramento segue o mapa principal.';}catch(err){status.textContent='Falha ao reproduzir camadas temáticas: '+err.message;}},0);
  setTimeout(()=>previewMap.invalidateSize(),50);
 }
+const resizeObserver=new ResizeObserver(()=>{if(previewMap&&!dialog.hidden){previewMap.invalidateSize();updateScale();}});resizeObserver.observe(byId('composer-map'));
 function open(){
  dialog.hidden=false;
  updatePreview();
@@ -100,6 +112,6 @@ close.addEventListener('click',dismiss);
 dialog.addEventListener('click',event=>{if(event.target===dialog)dismiss();});
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!dialog.hidden)dismiss();});
 byId('composer-refresh').addEventListener('click',updatePreview);
-['composer-map-title','composer-subtitle','composer-orientation','composer-legend','composer-north','composer-scale','composer-source','composer-source-text','composer-north-style','composer-scale-style'].forEach(id=>byId(id).addEventListener('input',updateLayout));
+['composer-map-title','composer-subtitle','composer-orientation','composer-legend','composer-north','composer-scale','composer-source','composer-source-text','composer-north-style'].forEach(id=>byId(id).addEventListener('input',updateLayout));
 ['composer-preview-title','composer-preview-subtitle','composer-source-display'].forEach(id=>byId(id).addEventListener('input',()=>edited.add(id)));byId('composer-legend-text').addEventListener('input',()=>{const v=byId('composer-legend-text').value.trim();if(v)byId('composer-legend-display').textContent=v;else updatePreview();});installDrag();
 })();
