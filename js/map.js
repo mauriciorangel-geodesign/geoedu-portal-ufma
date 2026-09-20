@@ -15,7 +15,7 @@ const basemaps={
   sentinel:L.tileLayer('https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2025_3857/default/g/{z}/{y}/{x}.jpg',{minZoom:0,maxNativeZoom:14,maxZoom:18,attribution:sentinelAttr,className:'sentinel-seamless-pane',updateWhenZooming:false,keepBuffer:3}),
   landsat:new LandsatImageLayer({tileSize:256,minZoom:2,maxZoom:16,attribution:landsatAttr})
 };
-let currentBasemap=basemaps.sentinel.addTo(map);L.control.scale({imperial:false,position:'bottomleft'}).addTo(map);
+let currentBasemap=basemaps.sentinel.addTo(map);L.control.scale({imperial:false,position:'bottomleft',maxWidth:160,metric:true,updateWhenIdle:false}).addTo(map);
 /* Ordem cartográfica fixa: base < polígonos < linhas < pontos < seleção. */
 const geoPanes={state:410,municipal:420,polygon:430,line:450,point:470,selection:490};
 Object.entries(geoPanes).forEach(([name,z])=>{const pane=map.createPane('geo-'+name);pane.style.zIndex=String(z);pane.style.pointerEvents='none';});
