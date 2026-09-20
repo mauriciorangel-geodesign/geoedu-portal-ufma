@@ -1,4 +1,4 @@
-/* GeoEdu Lab v2.1.2 — compositor de prévia A4. Exportação será disponibilizada após validação. */
+/* GeoEdu Lab v2.1.4 — compositor de prévia A4. Exportação será disponibilizada após validação. */
 (()=>{
 'use strict';
 const byId=id=>document.getElementById(id);
@@ -54,15 +54,24 @@ function northStyle(){const type=byId('composer-north-style').value;const node=b
 function scaleStyle(){const node=byId('composer-scale-display');setElementContent(node,'A escala gráfica proporcional é exibida no quadro do mapa.',true);}
 function updateScale(){
  if(!previewMap)return;
- const holder=byId('composer-scale-display'),size=previewMap.getSize(),w=size.x;
- if(w<20||size.y<20)return;
- const left=previewMap.containerPointToLatLng([w/2-65,size.y/2]);
- const right=previewMap.containerPointToLatLng([w/2+65,size.y/2]);
- const distance=left.distanceTo(right);if(!(distance>0))return;
- const power=Math.pow(10,Math.floor(Math.log10(distance))),ratio=distance/power;
- const metres=(ratio>=5?5:ratio>=2?2:1)*power,unit=metres>=1000?'km':'m',value=unit==='km'?metres/1000:metres;
- setElementContent(holder,'<div class="scale-values"><span>0</span><span>'+Number((value/2).toPrecision(3))+'</span><span>'+Number(value.toPrecision(3))+' '+unit+'</span></div><div class="scale-segments"><i></i><i></i><i></i><i></i></div>');
- holder.querySelector('.scale-segments').style.width='100%';
+ const holder=byId('composer-scale-display');
+ if(!holder||holder.hidden)return;
+ const size=previewMap.getSize();
+ if(size.x<20||size.y<20)return;
+ const center=[size.x/2,size.y/2];
+ const p1=previewMap.containerPointToLatLng([center[0]-50,center[1]]);
+ const p2=previewMap.containerPointToLatLng([center[0]+50,center[1]]);
+ const metresPerPixel=p1.distanceTo(p2)/100;
+ if(!Number.isFinite(metresPerPixel)||metresPerPixel<=0)return;
+ const available=Math.max(30,Math.min(180,holder.clientWidth-20));
+ const maxDistance=available*metresPerPixel;
+ const power=Math.pow(10,Math.floor(Math.log10(maxDistance)));
+ const ratio=maxDistance/power;
+ const metres=(ratio>=5?5:ratio>=2?2:1)*power;
+ const width=Math.min(available,metres/metresPerPixel);
+ const unit=metres>=1000?'km':'m',value=unit==='km'?metres/1000:metres;
+ const fmt=n=>Number(n.toPrecision(4)).toLocaleString('pt-BR',{maximumFractionDigits:4});
+ setElementContent(holder,'<div class="composer-scale-graphic" style="width:'+width+'px"><div class="scale-values"><span>0</span><span>'+fmt(value/2)+'</span><span>'+fmt(value)+' '+unit+'</span></div><div class="scale-segments"><i></i><i></i><i></i><i></i></div></div>');
 }
 function fitLegend(){
  const node=byId('composer-legend-display');if(!node||node.hidden)return;
@@ -85,7 +94,7 @@ function installInteractions(){
   preview.appendChild(node);
   node.classList.add('composer-interactive');
   Object.assign(node.style,{position:'absolute',left:x+'px',top:y+'px',width:w+'px',height:h+'px',margin:'0',maxWidth:'none',zIndex:String(++composerZ)});
-  const move=document.createElement('button');move.type='button';move.className='composer-move-handle';move.textContent='✥';move.title='Mover elemento';move.setAttribute('aria-label','Mover elemento');node.appendChild(move);
+  const move=document.createElement('button');move.type='button';move.className='composer-move-handle';move.textContent='';move.title='Arraste a caixa para mover';move.setAttribute('aria-label','Mover elemento');node.appendChild(move);
   const start=(event,mode)=>{
    if(event.button!==0)return;
    event.preventDefault();event.stopPropagation();
@@ -123,6 +132,7 @@ function installInteractions(){
    target.addEventListener('pointercancel',finish,{once:true});
   };
   move.addEventListener('pointerdown',e=>start(e,'move'));
+  if(!mapFrame){node.addEventListener('pointerdown',e=>{if(e.target.closest('.composer-resize-handle,.composer-move-handle,input,textarea,button,select,a,[contenteditable="true"]'))return;start(e,'move');});}
   for(const direction of ['n','ne','e','se','s','sw','w','nw']){
    const handle=document.createElement('span');handle.className='composer-resize-handle side-'+direction;
    handle.setAttribute('aria-label','Redimensionar '+direction);
