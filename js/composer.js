@@ -1,4 +1,4 @@
-/* GeoEdu Lab v2.0.3 — compositor de prévia A4. Exportação será disponibilizada após validação. */
+/* GeoEdu Lab v2.0.4 — compositor de prévia A4. Exportação será disponibilizada após validação. */
 (()=>{
 'use strict';
 const byId=id=>document.getElementById(id);
@@ -53,19 +53,20 @@ function northStyle(){const type=byId('composer-north-style').value;const node=b
 function scaleStyle(){const node=byId('composer-scale-display');node.textContent='A escala gráfica proporcional é exibida no quadro do mapa.';}
 function updateScale(){
  if(!previewMap)return;
- const holder=byId('composer-scale-display');
- const center=previewMap.getCenter(),width=previewMap.getSize().x;
- if(width<2)return;
- const a=previewMap.containerPointToLatLng([width*.35,previewMap.getSize().y/2]),b=previewMap.containerPointToLatLng([width*.65,previewMap.getSize().y/2]);
- const metres=a.distanceTo(b),units=metres>=1000?'km':'m',total=metres>=1000?metres/1000:metres;
- const nice=Math.pow(10,Math.floor(Math.log10(Math.max(total,1e-6))))*(total/Math.pow(10,Math.floor(Math.log10(Math.max(total,1e-6))))>=5?5:total/Math.pow(10,Math.floor(Math.log10(Math.max(total,1e-6))))>=2?2:1);
- const px=width*.3*nice/total;holder.innerHTML='<div class="scale-values"><span>0</span><span>'+Number((nice/2).toPrecision(3))+'</span><span>'+Number(nice.toPrecision(3))+' '+units+'</span></div><div class="scale-segments"><i></i><i></i><i></i><i></i></div>';
- holder.querySelector('.scale-segments').style.width=Math.max(40,Math.min(width*.55,px))+'px';
+ const holder=byId('composer-scale-display'),size=previewMap.getSize(),w=size.x;
+ if(w<20||size.y<20)return;
+ const left=previewMap.containerPointToLatLng([w/2-65,size.y/2]);
+ const right=previewMap.containerPointToLatLng([w/2+65,size.y/2]);
+ const distance=left.distanceTo(right);if(!(distance>0))return;
+ const power=Math.pow(10,Math.floor(Math.log10(distance))),ratio=distance/power;
+ const metres=(ratio>=5?5:ratio>=2?2:1)*power,unit=metres>=1000?'km':'m',value=unit==='km'?metres/1000:metres;
+ holder.innerHTML='<div class="scale-values"><span>0</span><span>'+Number((value/2).toPrecision(3))+'</span><span>'+Number(value.toPrecision(3))+' '+unit+'</span></div><div class="scale-segments"><i></i><i></i><i></i><i></i></div>';
+ holder.querySelector('.scale-segments').style.width=Math.max(35,Math.min(180,130*metres/distance))+'px';
 }
 function installDrag(){
  for(const node of preview.querySelectorAll('.composer-movable')){
   node.addEventListener('pointerdown',event=>{
-   if(event.button!==0||event.target.closest('input,button'))return;
+   if(event.button!==0||event.target.closest('input,button'))return;const bounds=node.getBoundingClientRect();if(event.clientX>bounds.right-22&&event.clientY>bounds.bottom-22)return;
    const startX=event.clientX,startY=event.clientY,rect=node.getBoundingClientRect(),page=preview.getBoundingClientRect();
    let moved=false;const left=rect.left-page.left,top=rect.top-page.top;
    const move=e=>{if(Math.abs(e.clientX-startX)+Math.abs(e.clientY-startY)<5&&!moved)return;moved=true;node.classList.add('dragging');node.style.position='absolute';node.style.margin='0';node.style.left=Math.max(0,Math.min(page.width-node.offsetWidth,left+e.clientX-startX))+'px';node.style.top=Math.max(0,Math.min(page.height-node.offsetHeight,top+e.clientY-startY))+'px';};
@@ -93,7 +94,7 @@ function updatePreview(){
  }
  if(previewBase)previewMap.removeLayer(previewBase);
  previewBase=newBase(activeBase()).addTo(previewMap);
- previewMap.setView(map.getCenter(),map.getZoom(),{animate:false});
+ previewMap.invalidateSize({pan:false});previewMap.setView(map.getCenter(),map.getZoom(),{animate:false});
  updateScale();
  const legend=byId('legend-content');
  const custom=byId('composer-legend-text').value.trim();byId('composer-legend-display').innerHTML=custom?'':legend?.innerHTML||'Nenhuma camada temática visível.';if(custom)byId('composer-legend-display').textContent=custom;byId('composer-attribution').textContent='Créditos do mapa-base: '+(previewBase?.getAttribution?.()||'Consulte as fontes do mapa principal.');
