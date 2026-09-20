@@ -100,3 +100,6 @@ body.properties-open #coords.coords-display{right:382px}
 
 /* v1.9.4: classes graduadas editáveis */
 .grad-class-row{display:grid;grid-template-columns:30px minmax(0,1fr);gap:6px 9px;align-items:center;padding:8px 2px;border-bottom:1px solid rgba(40,90,85,.14)}.grad-class-row>input[type=color]{width:30px;height:28px;border:0;padding:0;background:transparent}.grad-class-label{min-width:0;font-size:12px;overflow-wrap:anywhere}.grad-class-label small{display:block;color:#627d78}.grad-bound-label{grid-column:2;display:flex!important;flex-direction:column;font-size:11px!important}.grad-bound-label input{width:100%;box-sizing:border-box;border:1px solid #b9d3d0;border-radius:5px;padding:5px;font-size:12px}
+
+/* v1.9.5 — unidade e contagem em linhas distintas */
+.legend-range{display:block;line-height:1.35}.legend-feature-count{display:block;font-size:10px;line-height:1.3;color:#667e7c;margin-top:2px}.legend-subentry .legend-name{min-width:0;overflow-wrap:anywhere}
