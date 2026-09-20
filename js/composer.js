@@ -1,10 +1,10 @@
-/* GeoEdu Lab v2.1.5 — compositor de prévia A4. Exportação será disponibilizada após validação. */
+/* GeoEdu Lab v2.1.6 — compositor de prévia A4. Exportação será disponibilizada após validação. */
 (()=>{
 'use strict';
 const byId=id=>document.getElementById(id);
 const dialog=byId('composer-modal'),button=byId('btn-composer'),close=byId('composer-close');
 const preview=byId('composer-page'),status=byId('composer-status');
-let interactionsReady=false,layoutOrientation='landscape',composerZ=20;let previewMap=null,previewBase=null,previewVectors=[];let mapFrameObserver=null,autoFrame=true,resizeQueued=false;const edited=new Set();
+let interactionsReady=false,layoutOrientation='landscape',composerZ=20,selectedElement=null;let previewMap=null,previewBase=null,previewVectors=[];let mapFrameObserver=null,autoFrame=true,resizeQueued=false;const edited=new Set();
 function activeBase(){
  const key=document.querySelector('input[name="basemap"]:checked')?.value||'sentinel';
  return key;
@@ -50,7 +50,7 @@ function cloneThemes(){
  return keys.length;
 }
 function setElementContent(node,html,asText=false){const controls=[...node.querySelectorAll(':scope > .composer-move-handle,:scope > .composer-resize-handle')];controls.forEach(el=>el.remove());if(asText)node.textContent=html;else node.innerHTML=html;controls.forEach(el=>node.appendChild(el));}
-function northStyle(){const type=byId('composer-north-style').value;const node=byId('composer-north-mark');const arrow='<svg viewBox="0 0 32 46" aria-hidden="true"><path d="M16 2L27 35 16 29 5 35Z" fill="#173f48" stroke="#173f48" stroke-width="1.5"/><path d="M16 2V29L5 35Z" fill="#fff"/><text x="16" y="45" text-anchor="middle" font-size="9" fill="#173f48">N</text></svg>';const compass='<svg viewBox="0 0 32 46" aria-hidden="true"><path d="M16 2L21 19 30 23 21 27 16 40 11 27 2 23 11 19Z" fill="#173f48" stroke="#173f48"/><path d="M16 2V40L11 27 2 23 11 19Z" fill="#fff"/><text x="16" y="45" text-anchor="middle" font-size="8" fill="#173f48">N</text></svg>';const needle='<svg viewBox="0 0 32 46" aria-hidden="true"><path d="M16 2L25 36 16 29 7 36Z" fill="#173f48"/><path d="M16 2L16 29 7 36Z" fill="#fff" stroke="#173f48"/><text x="16" y="45" text-anchor="middle" font-size="9" fill="#173f48">N</text></svg>';setElementContent(node,type==='compass'?compass:type==='needle'?needle:arrow);}
+function northStyle(){const type=byId('composer-north-style').value;const node=byId('composer-north-mark');const arrow='<svg viewBox="0 0 32 46" aria-hidden="true"><path d="M16 2L27 35 16 29 5 35Z" fill="#173f48" stroke="#173f48" stroke-width="1.5"/><path d="M16 2V29L5 35Z" fill="#fff"/><text x="16" y="45" text-anchor="middle" font-size="9" fill="#173f48">N</text></svg>';const compass='<svg viewBox="0 0 32 46" aria-hidden="true"><path d="M16 2L21 19 30 23 21 27 16 40 11 27 2 23 11 19Z" fill="#173f48" stroke="#173f48"/><path d="M16 2V40L11 27 2 23 11 19Z" fill="#fff"/><text x="16" y="45" text-anchor="middle" font-size="8" fill="#173f48">N</text></svg>';const needle='<svg viewBox="0 0 32 46" aria-hidden="true"><path d="M16 2L25 36 16 29 7 36Z" fill="#173f48"/><path d="M16 2L16 29 7 36Z" fill="#fff" stroke="#173f48"/><text x="16" y="45" text-anchor="middle" font-size="9" fill="#173f48">N</text></svg>';setElementContent(node,type==='letter'?'<span class="composer-north-letter">N</span>':type==='compass'?compass:type==='needle'?needle:arrow);}
 function scaleStyle(){const node=byId('composer-scale-display');setElementContent(node,'A escala gráfica proporcional é exibida no quadro do mapa.',true);}
 function updateScale(){
  if(!previewMap)return;
@@ -63,7 +63,7 @@ function updateScale(){
  const p2=previewMap.containerPointToLatLng([center[0]+50,center[1]]);
  const metresPerPixel=p1.distanceTo(p2)/100;
  if(!Number.isFinite(metresPerPixel)||metresPerPixel<=0)return;
- const available=Math.max(30,Math.min(180,holder.clientWidth-20));
+ const available=Math.max(20,holder.clientWidth-12);
  const maxDistance=available*metresPerPixel;
  const power=Math.pow(10,Math.floor(Math.log10(maxDistance)));
  const ratio=maxDistance/power;
@@ -74,22 +74,34 @@ function updateScale(){
  setElementContent(holder,'<div class="composer-scale-graphic" style="width:'+width+'px"><div class="scale-values"><span>0</span><span>'+fmt(value/2)+'</span><span>'+fmt(value)+' '+unit+'</span></div><div class="scale-segments"><i></i><i></i><i></i><i></i></div></div>');
 }
 function fitLegend(){
- const node=byId('composer-legend-display');
- if(!node||node.hidden||!node.clientWidth||!node.clientHeight)return;
- let content=node.querySelector(':scope > .composer-legend-content');
- if(!content)return;
- content.style.zoom='1';
- content.style.width='100%';
- // Scale symbols, text and spacing together; never scale the resize/move controls.
- const availableW=Math.max(1,node.clientWidth-12),availableH=Math.max(1,node.clientHeight-12);
- let low=.3,high=1,fit=.3;
- for(let i=0;i<12;i++){
-  const scale=(low+high)/2;
-  content.style.zoom=String(scale);
-  if(content.scrollWidth<=availableW+1&&content.scrollHeight<=availableH+1){fit=scale;low=scale;}else high=scale;
- }
- content.style.zoom=String(fit);
- node.dataset.legendFits=String(content.scrollWidth<=availableW+1&&content.scrollHeight<=availableH+1);
+ const box=byId('composer-legend-display'),content=box?.querySelector(':scope > .composer-legend-content');
+ if(!content||box.hidden||!box.clientWidth||!box.clientHeight)return;
+ const width=Math.max(1,box.clientWidth-8),height=Math.max(1,box.clientHeight-8);
+ content.style.zoom='1';content.style.width='max-content';
+ const naturalW=Math.max(1,content.scrollWidth),naturalH=Math.max(1,content.scrollHeight);
+ const factor=Math.min(2,Math.max(.15,Math.min(width/naturalW,height/naturalH)));
+ content.style.zoom=String(factor);
+ box.dataset.legendFits=String(content.scrollWidth<=width+2&&content.scrollHeight<=height+2);
+}
+function selectElement(node){
+ selectedElement=node;
+ byId('composer-selected-name').textContent=({ 'composer-preview-title':'Título','composer-preview-subtitle':'Subtítulo','composer-source-display':'Fonte','composer-legend-display':'Legenda','composer-north-mark':'Norte','composer-scale-display':'Escala gráfica' })[node.id]||'Quadro do mapa';
+ const textNode=node.id==='composer-legend-display'?node.querySelector('.composer-legend-content'):node;
+ const textControl=byId('composer-font-size'),textGroup=byId('composer-text-tools');
+ const isText=['composer-preview-title','composer-preview-subtitle','composer-source-display','composer-legend-display'].includes(node.id);
+ textGroup.hidden=!isText;
+ if(isText)textControl.value=parseFloat(textNode?.style.fontSize)||parseFloat(getComputedStyle(textNode).fontSize)||12;
+ byId('composer-element-width').value=Math.round(node.offsetWidth);
+ byId('composer-element-height').value=Math.round(node.offsetHeight);
+}
+function applyElementSize(){
+ const node=selectedElement;if(!node)return;
+ const w=Number(byId('composer-element-width').value),h=Number(byId('composer-element-height').value);
+ if(Number.isFinite(w)&&w>0)node.style.width=Math.min(w,preview.clientWidth-node.offsetLeft)+'px';
+ if(Number.isFinite(h)&&h>0)node.style.height=Math.min(h,preview.clientHeight-node.offsetTop)+'px';
+ if(node.id==='composer-legend-display')fitLegend();
+ if(node.id==='composer-scale-display')updateScale();
+ if(node.classList.contains('composer-map-row'))requestAnimationFrame(fitFrame);
 }
 function fitFrame(){
  if(!previewMap||dialog.hidden)return;
@@ -103,6 +115,7 @@ function installInteractions(){
  const initial=nodes.map(node=>{const r=node.getBoundingClientRect(),p=page();return {node,x:r.left-p.left,y:r.top-p.top,w:r.width,h:r.height};});
  for(const {node,x,y,w,h} of initial){
   const mapFrame=node.classList.contains('composer-map-row');
+  node.addEventListener('pointerdown',()=>selectElement(node),{capture:true});
   if(node.matches('[contenteditable]')){node.contentEditable='false';node.title='Arraste para mover; clique duas vezes para editar o texto';node.addEventListener('dblclick',e=>{e.stopPropagation();node.contentEditable='true';node.focus();});node.addEventListener('blur',()=>{node.contentEditable='false';});}
   preview.appendChild(node);
   node.classList.add('composer-interactive');
@@ -133,12 +146,14 @@ function installInteractions(){
     l=Math.max(0,Math.min(l,p.width-w));t=Math.max(0,Math.min(t,p.height-h));
     Object.assign(node.style,{left:l+'px',top:t+'px',width:w+'px',height:h+'px'});
     if(node.id==='composer-legend-display')fitLegend();
+    if(node.id==='composer-scale-display')updateScale();
    };
    const finish=()=>{
     target.removeEventListener('pointermove',drag);
     target.removeEventListener('pointerup',finish);
     target.removeEventListener('pointercancel',finish);
     if(mapFrame)requestAnimationFrame(()=>{previewMap?.invalidateSize({pan:false});updateScale();});
+    if(selectedElement===node)selectElement(node);
    };
    target.addEventListener('pointermove',drag);
    target.addEventListener('pointerup',finish,{once:true});
@@ -198,7 +213,7 @@ function updatePreview(){
  previewMap.invalidateSize({pan:false});fitFrame();
  updateScale();
  const legend=byId('legend-content');
- const custom=byId('composer-legend-text').value.trim();const legendBox=byId('composer-legend-display');setElementContent(legendBox,'<div class="composer-legend-content"></div>');const legendContent=legendBox.querySelector('.composer-legend-content');if(custom)legendContent.textContent=custom;else legendContent.innerHTML=legend?.innerHTML||'Nenhuma camada temática visível.';requestAnimationFrame(fitLegend);byId('composer-attribution').textContent='Créditos do mapa-base: '+(previewBase?.getAttribution?.()||'Consulte as fontes do mapa principal.');
+ const custom=byId('composer-legend-text').value.trim();const legendBox=byId('composer-legend-display');setElementContent(legendBox,'<div class="composer-legend-content"></div>');const legendContent=legendBox.querySelector('.composer-legend-content');legendContent.contentEditable='false';legendContent.addEventListener('dblclick',e=>{e.stopPropagation();legendContent.contentEditable='true';legendContent.focus();});legendContent.addEventListener('blur',()=>{legendContent.contentEditable='false';});legendContent.addEventListener('input',()=>requestAnimationFrame(fitLegend));if(custom)legendContent.textContent=custom;else legendContent.innerHTML=legend?.innerHTML||'Nenhuma camada temática visível.';requestAnimationFrame(fitLegend);byId('composer-attribution').textContent='Créditos do mapa-base: '+(previewBase?.getAttribution?.()||'Consulte as fontes do mapa principal.');
  status.textContent='Preparando camadas temáticas visíveis…';setTimeout(()=>{if(dialog.hidden)return;try{const count=cloneThemes();status.textContent='Prévia atualizada: '+count+' camada(s) temática(s) visível(is), com simbologia atual. O enquadramento segue o mapa principal.';}catch(err){status.textContent='Falha ao reproduzir camadas temáticas: '+err.message;}},0);
  setTimeout(fitFrame,50);
 }
@@ -214,6 +229,8 @@ button.addEventListener('click',open);
 close.addEventListener('click',dismiss);
 dialog.addEventListener('click',event=>{if(event.target===dialog)dismiss();});
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!dialog.hidden)dismiss();});
+byId('composer-font-size').addEventListener('input',e=>{if(!selectedElement)return;const target=selectedElement.id==='composer-legend-display'?selectedElement.querySelector('.composer-legend-content'):selectedElement;if(!target)return;target.style.fontSize=e.target.value+'px';if(selectedElement.id==='composer-legend-display')fitLegend();});
+['composer-element-width','composer-element-height'].forEach(id=>byId(id).addEventListener('change',applyElementSize));
 byId('composer-refresh').addEventListener('click',updatePreview);byId('composer-fit').addEventListener('click',()=>{autoFrame=true;fitFrame();});byId('composer-zoom-in').addEventListener('click',()=>{autoFrame=false;previewMap?.zoomIn();});byId('composer-zoom-out').addEventListener('click',()=>{autoFrame=false;previewMap?.zoomOut();});byId('composer-orientation').addEventListener('change',()=>{requestAnimationFrame(()=>{previewMap?.invalidateSize({pan:false});fitFrame();});});
 ['composer-map-title','composer-subtitle','composer-orientation','composer-legend','composer-north','composer-scale','composer-source','composer-source-text','composer-north-style'].forEach(id=>byId(id).addEventListener('input',updateLayout));
 ['composer-preview-title','composer-preview-subtitle','composer-source-display'].forEach(id=>byId(id).addEventListener('input',()=>edited.add(id)));byId('composer-legend-text').addEventListener('input',()=>{
