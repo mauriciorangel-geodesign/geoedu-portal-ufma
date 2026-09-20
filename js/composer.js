@@ -1,10 +1,10 @@
-/* GeoEdu Lab v2.0.9 — compositor de prévia A4. Exportação será disponibilizada após validação. */
+/* GeoEdu Lab v2.1.0 — compositor de prévia A4. Exportação será disponibilizada após validação. */
 (()=>{
 'use strict';
 const byId=id=>document.getElementById(id);
 const dialog=byId('composer-modal'),button=byId('btn-composer'),close=byId('composer-close');
 const preview=byId('composer-page'),status=byId('composer-status');
-let interactionsReady=false,layoutOrientation='landscape';let previewMap=null,previewBase=null,previewVectors=[];let mapFrameObserver=null,autoFrame=true,resizeQueued=false;const edited=new Set();
+let interactionsReady=false,layoutOrientation='landscape',composerZ=20;let previewMap=null,previewBase=null,previewVectors=[];let mapFrameObserver=null,autoFrame=true,resizeQueued=false;const edited=new Set();
 function activeBase(){
  const key=document.querySelector('input[name="basemap"]:checked')?.value||'sentinel';
  return key;
@@ -82,12 +82,12 @@ function installInteractions(){
  const positions=nodes.map(node=>{const r=node.getBoundingClientRect(),p=pageRect();return {node,x:r.left-p.left,y:r.top-p.top,w:r.width,h:r.height};});
  for(const item of positions){
   const {node,x,y,w,h}=item,mapFrame=node.classList.contains('composer-map-row');
-  preview.appendChild(node);node.classList.add('composer-interactive');
+  preview.appendChild(node);node.classList.add('composer-interactive');node.style.zIndex=String(++composerZ);
   Object.assign(node.style,{position:'absolute',left:x+'px',top:y+'px',width:w+'px',height:h+'px',margin:'0',maxWidth:'none'});
   const moveHandle=document.createElement('button');moveHandle.type='button';moveHandle.className='composer-move-handle';moveHandle.textContent='✥';moveHandle.title='Mover elemento';moveHandle.setAttribute('aria-label','Mover elemento');node.appendChild(moveHandle);
   const start=(event,mode)=>{
    if(event.button!==0)return;
-   event.preventDefault();event.stopPropagation();node.style.zIndex=String(++window.__composerZ || (window.__composerZ=900));
+   event.preventDefault();event.stopPropagation();node.style.zIndex=String(++composerZ);
    const p=pageRect(),rect=node.getBoundingClientRect();
    const o={x:event.clientX,y:event.clientY,w:rect.width,h:rect.height,l:rect.left-p.left,t:rect.top-p.top};
    const minW=mapFrame?150:node.id==='composer-legend-display'?120:55,minH=mapFrame?140:35;
@@ -103,7 +103,7 @@ function installInteractions(){
     Object.assign(node.style,{left:l+'px',top:t+'px',width:w+'px',height:h+'px'});
     if(node.id==='composer-legend-display')fitLegend();
    };
-   const finish=()=>{target.removeEventListener('pointermove',drag);target.removeEventListener('pointerup',finish);target.removeEventListener('pointercancel',finish);if(mapFrame)requestAnimationFrame(fitFrame);};
+   const finish=()=>{target.removeEventListener('pointermove',drag);target.removeEventListener('pointerup',finish);target.removeEventListener('pointercancel',finish);if(mapFrame){previewMap?.invalidateSize({pan:false});updateScale();}};
    target.addEventListener('pointermove',drag);target.addEventListener('pointerup',finish,{once:true});target.addEventListener('pointercancel',finish,{once:true});
   };
   moveHandle.addEventListener('pointerdown',e=>start(e,'move'));
@@ -118,11 +118,11 @@ function changeOrientation(){
  preview.classList.toggle('portrait',next==='portrait');preview.classList.toggle('landscape',next!=='portrait');
  const fresh=preview.getBoundingClientRect(),sx=fresh.width/old.width,sy=fresh.height/old.height;
  for(const {node,x,y,w,h} of items){
-  const nw=Math.max(node.classList.contains('composer-map-row')?150:55,Math.min(fresh.width-12,w*sx));
-  const nh=Math.max(node.classList.contains('composer-map-row')?140:35,Math.min(fresh.height-12,h*sy));
+  const nw=Math.min(fresh.width,Math.max(30,w*sx));
+  const nh=Math.min(fresh.height,Math.max(25,h*sy));
   Object.assign(node.style,{left:Math.max(0,Math.min(fresh.width-nw,x*sx))+'px',top:Math.max(0,Math.min(fresh.height-nh,y*sy))+'px',width:nw+'px',height:nh+'px'});
  }
- layoutOrientation=next;requestAnimationFrame(()=>{fitFrame();fitLegend();});
+ layoutOrientation=next;requestAnimationFrame(()=>{previewMap?.invalidateSize({pan:false});updateScale();fitLegend();});
 }
 function updateLayout(){
  if(!edited.has('composer-preview-title'))byId('composer-preview-title').textContent=byId('composer-map-title').value.trim()||'Mapa sem título';
@@ -133,7 +133,7 @@ function updateLayout(){
  byId('composer-scale-display').hidden=!byId('composer-scale').checked;
  byId('composer-source-display').hidden=!byId('composer-source').checked;
  if(!edited.has('composer-source-display'))byId('composer-source-display').textContent='Fonte: '+byId('composer-source-text').value.trim();northStyle();if(previewMap)updateScale();
- if(previewMap){requestAnimationFrame(fitFrame);}
+ if(previewMap){requestAnimationFrame(()=>{previewMap.invalidateSize({pan:false});updateScale();});}
 }
 function updatePreview(){
  updateLayout();
@@ -153,7 +153,7 @@ function updatePreview(){
 const resizeObserver=new ResizeObserver(()=>{if(previewMap&&!dialog.hidden&&!resizeQueued){resizeQueued=true;requestAnimationFrame(()=>{resizeQueued=false;fitFrame();});}});resizeObserver.observe(document.querySelector('.composer-map-row'));const legendObserver=new ResizeObserver(()=>requestAnimationFrame(fitLegend));legendObserver.observe(byId('composer-legend-display'));
 function open(){
  dialog.hidden=false;
- if(!interactionsReady){installInteractions();interactionsReady=true;}
+ if(!interactionsReady){requestAnimationFrame(()=>{installInteractions();interactionsReady=true;updatePreview();});return;}
  updatePreview();
  close.focus();
 }
