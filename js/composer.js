@@ -61,7 +61,7 @@ function updateScale(){
  const distance=left.distanceTo(right);if(!(distance>0))return;
  const power=Math.pow(10,Math.floor(Math.log10(distance))),ratio=distance/power;
  const metres=(ratio>=5?5:ratio>=2?2:1)*power,unit=metres>=1000?'km':'m',value=unit==='km'?metres/1000:metres;
- setElementContent(holder,'<div class="scale-values"><span>0</span><span>'+Number((value/2).toPrecision(3))+'</span><span>'+Number(value.toPrecision(3))+' '+unit+'</span></div><div class="scale-segments"><i></i><i></i><i></i><i></i></div>';
+ setElementContent(holder,'<div class="scale-values"><span>0</span><span>'+Number((value/2).toPrecision(3))+'</span><span>'+Number(value.toPrecision(3))+' '+unit+'</span></div><div class="scale-segments"><i></i><i></i><i></i><i></i></div>');
  holder.querySelector('.scale-segments').style.width='100%';
 }
 function fitLegend(){
