@@ -94,3 +94,6 @@ body.properties-open #coords.coords-display{right:382px}
 
 /* v1.9.1 */
 #prop-category-search{width:100%;min-width:0;box-sizing:border-box;padding:7px;border:1px solid #b9d3d0;border-radius:6px}.prop-category-list{max-height:230px;overflow:auto}.legend-subentry{overflow-wrap:anywhere}
+
+/* v1.9.2 — classificação graduada */
+#prop-graduated[hidden]{display:none!important}#prop-graduated label{display:grid;gap:4px;font-size:12px}#prop-graduated select{width:100%;min-width:0;box-sizing:border-box;padding:6px;border:1px solid #b9d3d0;border-radius:5px}
