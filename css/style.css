@@ -91,3 +91,6 @@ body.properties-open #coords.coords-display{right:382px}
 
 /* v1.9.0 — categorias temáticas */
 .prop-categories{display:grid;gap:8px;margin:8px 0}.prop-categories[hidden],#prop-simple-controls[hidden]{display:none!important}.prop-category-list{max-height:220px;overflow-y:auto;display:grid;gap:4px}.category-entry{display:grid;grid-template-columns:32px minmax(0,1fr);gap:8px;align-items:center;font-size:12px;padding:4px;border-bottom:1px solid rgba(40,90,85,.12)}.category-entry input{width:30px;height:26px;padding:0;border:0;background:transparent}.category-entry span{overflow-wrap:anywhere}.legend-subentry{padding-left:15px;font-size:11px}
+
+/* v1.9.1 */
+#prop-category-search{width:100%;min-width:0;box-sizing:border-box;padding:7px;border:1px solid #b9d3d0;border-radius:6px}.prop-category-list{max-height:230px;overflow:auto}.legend-subentry{overflow-wrap:anywhere}
