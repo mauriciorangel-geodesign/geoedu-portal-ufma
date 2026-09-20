@@ -1,4 +1,4 @@
-/* GeoEdu Lab v2.1.0 — compositor de prévia A4. Exportação será disponibilizada após validação. */
+/* GeoEdu Lab v2.1.1 — compositor de prévia A4. Exportação será disponibilizada após validação. */
 (()=>{
 'use strict';
 const byId=id=>document.getElementById(id);
@@ -49,8 +49,9 @@ function cloneThemes(){
  }
  return keys.length;
 }
-function northStyle(){const type=byId('composer-north-style').value;const node=byId('composer-north-mark');const arrow='<svg viewBox="0 0 32 46" aria-hidden="true"><path d="M16 2L27 35 16 29 5 35Z" fill="#173f48" stroke="#173f48" stroke-width="1.5"/><path d="M16 2V29L5 35Z" fill="#fff"/><text x="16" y="45" text-anchor="middle" font-size="9" fill="#173f48">N</text></svg>';const compass='<svg viewBox="0 0 32 46" aria-hidden="true"><path d="M16 2L21 19 30 23 21 27 16 40 11 27 2 23 11 19Z" fill="#173f48" stroke="#173f48"/><path d="M16 2V40L11 27 2 23 11 19Z" fill="#fff"/><text x="16" y="45" text-anchor="middle" font-size="8" fill="#173f48">N</text></svg>';const needle='<svg viewBox="0 0 32 46" aria-hidden="true"><path d="M16 2L25 36 16 29 7 36Z" fill="#173f48"/><path d="M16 2L16 29 7 36Z" fill="#fff" stroke="#173f48"/><text x="16" y="45" text-anchor="middle" font-size="9" fill="#173f48">N</text></svg>';node.innerHTML=type==='compass'?compass:type==='needle'?needle:arrow;}
-function scaleStyle(){const node=byId('composer-scale-display');node.textContent='A escala gráfica proporcional é exibida no quadro do mapa.';}
+function setElementContent(node,html,asText=false){const controls=[...node.querySelectorAll(':scope > .composer-move-handle,:scope > .composer-resize-handle')];controls.forEach(el=>el.remove());if(asText)node.textContent=html;else node.innerHTML=html;controls.forEach(el=>node.appendChild(el));}
+function northStyle(){const type=byId('composer-north-style').value;const node=byId('composer-north-mark');const arrow='<svg viewBox="0 0 32 46" aria-hidden="true"><path d="M16 2L27 35 16 29 5 35Z" fill="#173f48" stroke="#173f48" stroke-width="1.5"/><path d="M16 2V29L5 35Z" fill="#fff"/><text x="16" y="45" text-anchor="middle" font-size="9" fill="#173f48">N</text></svg>';const compass='<svg viewBox="0 0 32 46" aria-hidden="true"><path d="M16 2L21 19 30 23 21 27 16 40 11 27 2 23 11 19Z" fill="#173f48" stroke="#173f48"/><path d="M16 2V40L11 27 2 23 11 19Z" fill="#fff"/><text x="16" y="45" text-anchor="middle" font-size="8" fill="#173f48">N</text></svg>';const needle='<svg viewBox="0 0 32 46" aria-hidden="true"><path d="M16 2L25 36 16 29 7 36Z" fill="#173f48"/><path d="M16 2L16 29 7 36Z" fill="#fff" stroke="#173f48"/><text x="16" y="45" text-anchor="middle" font-size="9" fill="#173f48">N</text></svg>';setElementContent(node,type==='compass'?compass:type==='needle'?needle:arrow);}
+function scaleStyle(){const node=byId('composer-scale-display');setElementContent(node,'A escala gráfica proporcional é exibida no quadro do mapa.',true);}
 function updateScale(){
  if(!previewMap)return;
  const holder=byId('composer-scale-display'),size=previewMap.getSize(),w=size.x;
@@ -60,7 +61,7 @@ function updateScale(){
  const distance=left.distanceTo(right);if(!(distance>0))return;
  const power=Math.pow(10,Math.floor(Math.log10(distance))),ratio=distance/power;
  const metres=(ratio>=5?5:ratio>=2?2:1)*power,unit=metres>=1000?'km':'m',value=unit==='km'?metres/1000:metres;
- holder.innerHTML='<div class="scale-values"><span>0</span><span>'+Number((value/2).toPrecision(3))+'</span><span>'+Number(value.toPrecision(3))+' '+unit+'</span></div><div class="scale-segments"><i></i><i></i><i></i><i></i></div>';
+ setElementContent(holder,'<div class="scale-values"><span>0</span><span>'+Number((value/2).toPrecision(3))+'</span><span>'+Number(value.toPrecision(3))+' '+unit+'</span></div><div class="scale-segments"><i></i><i></i><i></i><i></i></div>';
  holder.querySelector('.scale-segments').style.width='100%';
 }
 function fitLegend(){
@@ -125,14 +126,14 @@ function changeOrientation(){
  layoutOrientation=next;requestAnimationFrame(()=>{previewMap?.invalidateSize({pan:false});updateScale();fitLegend();});
 }
 function updateLayout(){
- if(!edited.has('composer-preview-title'))byId('composer-preview-title').textContent=byId('composer-map-title').value.trim()||'Mapa sem título';
- if(!edited.has('composer-preview-subtitle'))byId('composer-preview-subtitle').textContent=byId('composer-subtitle').value.trim();
+ if(!edited.has('composer-preview-title'))setElementContent(byId('composer-preview-title'),byId('composer-map-title').value.trim()||'Mapa sem título',true);
+ if(!edited.has('composer-preview-subtitle'))setElementContent(byId('composer-preview-subtitle'),byId('composer-subtitle').value.trim(),true);
  changeOrientation();
  byId('composer-north-mark').hidden=!byId('composer-north').checked;
  byId('composer-legend-display').hidden=!byId('composer-legend').checked;
  byId('composer-scale-display').hidden=!byId('composer-scale').checked;
  byId('composer-source-display').hidden=!byId('composer-source').checked;
- if(!edited.has('composer-source-display'))byId('composer-source-display').textContent='Fonte: '+byId('composer-source-text').value.trim();northStyle();if(previewMap)updateScale();
+ if(!edited.has('composer-source-display'))setElementContent(byId('composer-source-display'),'Fonte: '+byId('composer-source-text').value.trim(),true);northStyle();if(previewMap)updateScale();
  if(previewMap){requestAnimationFrame(()=>{previewMap.invalidateSize({pan:false});updateScale();});}
 }
 function updatePreview(){
@@ -146,7 +147,7 @@ function updatePreview(){
  previewMap.invalidateSize({pan:false});fitFrame();
  updateScale();
  const legend=byId('legend-content');
- const custom=byId('composer-legend-text').value.trim();const legendBox=byId('composer-legend-display');const handles=[...legendBox.querySelectorAll('.composer-resize-handle,.composer-move-handle')];handles.forEach(el=>el.remove());legendBox.innerHTML=custom?'':legend?.innerHTML||'Nenhuma camada temática visível.';if(custom)legendBox.textContent=custom;handles.forEach(el=>legendBox.appendChild(el));requestAnimationFrame(fitLegend);byId('composer-attribution').textContent='Créditos do mapa-base: '+(previewBase?.getAttribution?.()||'Consulte as fontes do mapa principal.');
+ const custom=byId('composer-legend-text').value.trim();const legendBox=byId('composer-legend-display');setElementContent(legendBox,custom||legend?.innerHTML||'Nenhuma camada temática visível.',!!custom);requestAnimationFrame(fitLegend);byId('composer-attribution').textContent='Créditos do mapa-base: '+(previewBase?.getAttribution?.()||'Consulte as fontes do mapa principal.');
  status.textContent='Preparando camadas temáticas visíveis…';setTimeout(()=>{if(dialog.hidden)return;try{const count=cloneThemes();status.textContent='Prévia atualizada: '+count+' camada(s) temática(s) visível(is), com simbologia atual. O enquadramento segue o mapa principal.';}catch(err){status.textContent='Falha ao reproduzir camadas temáticas: '+err.message;}},0);
  setTimeout(fitFrame,50);
 }
