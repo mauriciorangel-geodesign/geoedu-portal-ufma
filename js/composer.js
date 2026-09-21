@@ -1,4 +1,4 @@
-/* GeoEdu Lab v2.2.0 — compositor de prévia A4. Exportação será disponibilizada após validação. */
+/* GeoEdu Lab v2.2.2 — compositor de prévia A4. Exportação será disponibilizada após validação. */
 (()=>{
 'use strict';
 const byId=id=>document.getElementById(id);
@@ -274,7 +274,7 @@ function open(){
 function dismiss(){dialog.hidden=true;button.focus();}
 button.addEventListener('click',open);
 close.addEventListener('click',dismiss);
-dialog.addEventListener('click',event=>{if(event.target===dialog)dismiss();});
+// Close only via the explicit close button or Escape. A click outside the page must not discard an active composition.
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!dialog.hidden)dismiss();});
 byId('composer-delete-label').addEventListener('click',()=>{if(!selectedElement?.classList.contains('composer-user-label'))return;selectedElement.remove();selectedElement=null;byId('composer-selected-name').textContent='Clique em um elemento na página';byId('composer-text-tools').hidden=true;byId('composer-delete-label').hidden=true;});
 byId('composer-add-label').addEventListener('click',()=>{
