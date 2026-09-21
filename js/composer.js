@@ -1,4 +1,4 @@
-/* GeoEdu Lab v2.2.2 — compositor de prévia A4. Exportação será disponibilizada após validação. */
+/* GeoEdu Lab v2.2.4 — compositor de prévia A4. Exportação será disponibilizada após validação. */
 (()=>{
 'use strict';
 const byId=id=>document.getElementById(id);
@@ -283,6 +283,7 @@ byId('composer-add-label').addEventListener('click',()=>{
 ['composer-element-width','composer-element-height'].forEach(id=>byId(id).addEventListener('change',applySelectedDimensions));
 byId('composer-font-size').addEventListener('input',e=>{if(!selectedElement)return;const target=selectedElement.id==='composer-legend-display'?selectedElement.querySelector('.composer-legend-content'):selectedElement;if(!target)return;target.style.fontSize=e.target.value+'px';if(selectedElement.id==='composer-legend-display')fitLegend();});
 
+byId('composer-export-pdf').addEventListener('click',()=>{if(dialog.hidden)return;status.textContent='Na janela de impressão, escolha Salvar como PDF, papel A4, margens Nenhuma, escala 100% e gráficos de fundo habilitados. Verifique a prévia antes de salvar.';requestAnimationFrame(()=>window.print());});
 byId('composer-refresh').addEventListener('click',updatePreview);byId('composer-fit').addEventListener('click',()=>{autoFrame=true;fitFrame();});byId('composer-zoom-in').addEventListener('click',()=>{autoFrame=false;previewMap?.zoomIn();});byId('composer-zoom-out').addEventListener('click',()=>{autoFrame=false;previewMap?.zoomOut();});byId('composer-orientation').addEventListener('change',()=>{requestAnimationFrame(()=>{previewMap?.invalidateSize({pan:false});fitFrame();});});
 ['composer-map-title','composer-subtitle','composer-orientation','composer-legend','composer-north','composer-scale','composer-source','composer-source-text','composer-north-style'].forEach(id=>byId(id).addEventListener('input',updateLayout));
 ['composer-preview-title','composer-preview-subtitle','composer-source-display'].forEach(id=>byId(id).addEventListener('input',()=>edited.add(id)));byId('composer-legend-text').addEventListener('input',()=>{
