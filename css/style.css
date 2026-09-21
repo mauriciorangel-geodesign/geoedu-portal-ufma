@@ -231,3 +231,20 @@ body.properties-open #coords.coords-display{right:382px}
 }
 #composer-delete-label.composer-delete-action:not([hidden]){background:#a83434!important;color:#fff!important;border:1px solid #922b2b!important;font-weight:700!important;box-shadow:0 2px 6px #4c222222!important;cursor:pointer!important}
 #composer-delete-label.composer-delete-action:not([hidden]):hover{background:#8e2525!important}
+
+/* v2.2.4: isolated A4 print layout; print only the composition page */
+@media print {
+ @page {size:A4 landscape;margin:0;}
+ html,body{margin:0!important;padding:0!important;background:white!important;width:auto!important;height:auto!important;overflow:visible!important;print-color-adjust:exact!important;-webkit-print-color-adjust:exact!important;}
+ body *{visibility:hidden!important;}
+ #composer-modal,#composer-modal .composer-shell,#composer-modal .composer-body,#composer-modal .composer-preview-wrap,#composer-page,#composer-page *{visibility:visible!important;}
+ #composer-modal{display:block!important;position:static!important;inset:auto!important;overflow:visible!important;width:auto!important;height:auto!important;padding:0!important;margin:0!important;background:transparent!important;}
+ #composer-modal .composer-shell,#composer-modal .composer-body,#composer-modal .composer-preview-wrap{display:block!important;position:static!important;overflow:visible!important;max-height:none!important;max-width:none!important;width:auto!important;height:auto!important;margin:0!important;padding:0!important;border:0!important;box-shadow:none!important;background:white!important;}
+ #composer-modal .composer-head,#composer-modal .composer-controls,#composer-modal .composer-attribution,#composer-modal .composer-preview-note{display:none!important;}
+ #composer-page,#composer-page.landscape{position:relative!important;display:block!important;box-sizing:border-box!important;width:297mm!important;height:210mm!important;min-height:0!important;max-width:none!important;max-height:none!important;aspect-ratio:auto!important;margin:0!important;padding:0!important;border:0!important;box-shadow:none!important;overflow:hidden!important;background:white!important;}
+ #composer-page.portrait{width:210mm!important;height:297mm!important;}
+ #composer-page .composer-interactive{outline:none!important;box-shadow:none!important;}
+ #composer-page .composer-move-handle,#composer-page .composer-resize-handle{display:none!important;visibility:hidden!important;}
+ #composer-page #composer-legend-display::after{display:none!important;}
+ #composer-page #composer-legend-display,#composer-page #composer-legend-display:hover{outline:none!important;border:0!important;background:transparent!important;}
+}
