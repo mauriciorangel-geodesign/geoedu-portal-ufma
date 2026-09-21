@@ -248,3 +248,11 @@ body.properties-open #coords.coords-display{right:382px}
  #composer-page #composer-legend-display::after{display:none!important;}
  #composer-page #composer-legend-display,#composer-page #composer-legend-display:hover{outline:none!important;border:0!important;background:transparent!important;}
 }
+
+/* v2.2.5: page orientation is set by a later @page rule inserted by composer.js at print time. */
+@media print {
+ #composer-page.portrait{width:210mm!important;height:297mm!important;max-width:210mm!important;max-height:297mm!important;}
+ #composer-page.landscape{width:297mm!important;height:210mm!important;max-width:297mm!important;max-height:210mm!important;}
+ #composer-modal .composer-preview-wrap{break-inside:avoid!important;page-break-inside:avoid!important;}
+ #composer-page{break-inside:avoid!important;page-break-inside:avoid!important;}
+}
