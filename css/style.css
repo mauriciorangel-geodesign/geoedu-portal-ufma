@@ -200,3 +200,17 @@ body.properties-open #coords.coords-display{right:382px}
 #composer-element-tools .composer-size-controls input{min-width:0;width:100%;box-sizing:border-box}
 .composer-page #composer-legend-display,.composer-page #composer-scale-display{min-width:0!important;min-height:0!important;max-width:none!important;max-height:none!important;box-sizing:border-box!important}
 .composer-page #composer-legend-display .composer-resize-handle,.composer-page #composer-scale-display .composer-resize-handle{z-index:3000!important;pointer-events:auto!important}
+
+/* v2.2.1: show a temporary editing boundary on legend hover/focus, never on the printed map */
+@media screen {
+ .composer-page #composer-legend-display.composer-interactive:hover,
+ .composer-page #composer-legend-display.composer-interactive:focus-within {
+  outline:1px dashed #558b86!important;
+  outline-offset:2px!important;
+ }
+}
+@media print {
+ .composer-page #composer-legend-display,
+ .composer-page #composer-legend-display:hover,
+ .composer-page #composer-legend-display:focus-within {outline:none!important;box-shadow:none!important;border:0!important;background:transparent!important;}
+}
