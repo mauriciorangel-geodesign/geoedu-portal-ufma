@@ -1,4 +1,4 @@
-/* GeoEdu Lab v2.1.9 — compositor de prévia A4. Exportação será disponibilizada após validação. */
+/* GeoEdu Lab v2.2.0 — compositor de prévia A4. Exportação será disponibilizada após validação. */
 (()=>{
 'use strict';
 const byId=id=>document.getElementById(id);
@@ -102,6 +102,18 @@ function selectElement(node){
  textGroup.hidden=!isText;
  if(isText)textControl.value=parseFloat(textNode?.style.fontSize)||parseFloat(getComputedStyle(textNode).fontSize)||12;
  byId('composer-delete-label').hidden=!node.classList.contains('composer-user-label');
+ byId('composer-element-width').value=Math.round(node.getBoundingClientRect().width);
+ byId('composer-element-height').value=Math.round(node.getBoundingClientRect().height);
+}
+function applySelectedDimensions(){
+ const node=selectedElement;if(!node||!preview.contains(node))return;
+ const maxW=Math.max(40,preview.clientWidth-node.offsetLeft),maxH=Math.max(25,preview.clientHeight-node.offsetTop);
+ const w=Number(byId('composer-element-width').value),h=Number(byId('composer-element-height').value);
+ if(Number.isFinite(w)&&w>0)node.style.width=Math.min(maxW,Math.max(40,w))+'px';
+ if(Number.isFinite(h)&&h>0)node.style.height=Math.min(maxH,Math.max(25,h))+'px';
+ if(node.id==='composer-legend-display')requestAnimationFrame(fitLegend);
+ if(node.id==='composer-scale-display')requestAnimationFrame(updateScale);
+ if(node.classList.contains('composer-map-row'))requestAnimationFrame(()=>{previewMap?.invalidateSize({pan:false});updateScale();});
 }
 function fitFrame(){
  if(!previewMap||dialog.hidden)return;
@@ -133,6 +145,7 @@ function installInteractions(custom){
    const origin={x:event.clientX,y:event.clientY,l:node.offsetLeft,t:node.offsetTop,w:node.offsetWidth,h:node.offsetHeight};
    const minW=mapFrame?150:node.id==='composer-legend-display'?120:40,minH=mapFrame?140:25;
    const target=event.currentTarget;
+   selectElement(node);
    target.setPointerCapture(event.pointerId);
    const drag=e=>{
     const dx=e.clientX-origin.x,dy=e.clientY-origin.y;
@@ -267,6 +280,7 @@ byId('composer-delete-label').addEventListener('click',()=>{if(!selectedElement?
 byId('composer-add-label').addEventListener('click',()=>{
  const node=document.createElement('div');node.id='composer-user-label-'+(++labelCount);node.className='composer-movable composer-user-label';node.textContent=byId('composer-new-label').value.trim()||'Novo texto';node.contentEditable='true';Object.assign(node.style,{position:'absolute',left:'25px',top:'25px',width:'170px',height:'35px',fontSize:'14px'});preview.appendChild(node);makeInteractive(node);selectElement(node);
 });
+['composer-element-width','composer-element-height'].forEach(id=>byId(id).addEventListener('change',applySelectedDimensions));
 byId('composer-font-size').addEventListener('input',e=>{if(!selectedElement)return;const target=selectedElement.id==='composer-legend-display'?selectedElement.querySelector('.composer-legend-content'):selectedElement;if(!target)return;target.style.fontSize=e.target.value+'px';if(selectedElement.id==='composer-legend-display')fitLegend();});
 
 byId('composer-refresh').addEventListener('click',updatePreview);byId('composer-fit').addEventListener('click',()=>{autoFrame=true;fitFrame();});byId('composer-zoom-in').addEventListener('click',()=>{autoFrame=false;previewMap?.zoomIn();});byId('composer-zoom-out').addEventListener('click',()=>{autoFrame=false;previewMap?.zoomOut();});byId('composer-orientation').addEventListener('change',()=>{requestAnimationFrame(()=>{previewMap?.invalidateSize({pan:false});fitFrame();});});
