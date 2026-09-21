@@ -256,3 +256,12 @@ body.properties-open #coords.coords-display{right:382px}
  #composer-modal .composer-preview-wrap{break-inside:avoid!important;page-break-inside:avoid!important;}
  #composer-page{break-inside:avoid!important;page-break-inside:avoid!important;}
 }
+
+/* v2.2.6: remove hidden WebGIS layout from print flow to prevent a blank first page. */
+@media print {
+ body > :not(#composer-modal):not(script):not(style){display:none!important;}
+ body > #composer-modal{display:block!important;position:static!important;float:none!important;clear:none!important;break-before:auto!important;page-break-before:auto!important;break-after:auto!important;page-break-after:auto!important;}
+ #composer-modal .composer-shell,#composer-modal .composer-body,#composer-modal .composer-preview-wrap{break-before:auto!important;page-break-before:auto!important;break-after:auto!important;page-break-after:auto!important;}
+ #composer-modal .composer-preview-wrap{margin:0!important;padding:0!important;}
+ #composer-page{break-before:auto!important;page-break-before:auto!important;break-after:auto!important;page-break-after:auto!important;}
+}
