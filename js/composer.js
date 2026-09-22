@@ -1,4 +1,4 @@
-/* GeoEdu Lab v2.3.1 — compositor de prévia A4. Exportação será disponibilizada após validação. */
+/* GeoEdu Lab v2.3.2 — compositor de prévia A4. Exportação será disponibilizada após validação. */
 (()=>{
 'use strict';
 const byId=id=>document.getElementById(id);
@@ -381,6 +381,59 @@ async function exportRaster(){
 }
 byId('composer-export-raster').addEventListener('click',exportRaster);
 
+/* Write baseline little-endian RGBA TIFF with explicit GeoTIFF tags.
+   UTIF.encodeImage does not preserve caller-supplied GeoTIFF tags. */
+function encodeGeoTiffRGBA(rgba,w,h,dx,dy,minX,maxY){
+ const keys=[1,1,0,3,1024,0,1,1,1025,0,1,1,3072,0,1,3857];
+ const ascii='WGS 84 / Pseudo-Mercator|';
+ const entries=[
+ [256,4,1,w],[257,4,1,h],[258,3,4,[8,8,8,8]],
+ [259,3,1,1],[262,3,1,2],[273,4,1,0],
+ [277,3,1,4],[278,4,1,h],[279,4,1,rgba.length],
+ [282,5,1,[150,1]],[283,5,1,[150,1]],[284,3,1,1],
+ [296,3,1,2],[338,3,1,2],
+ [33550,12,3,[dx,dy,0]],[33922,12,6,[0,0,0,minX,maxY,0]],
+ [34735,3,keys.length,keys],[34737,2,ascii.length+1,ascii+'\\0']
+ ].sort((a,b)=>a[0]-b[0]);
+ const count=entries.length,ifdOffset=8,ifdEnd=ifdOffset+2+count*12+4;
+ let cursor=ifdEnd;
+ const align=(n)=> (n+3)&~3;
+ const typeSize={2:1,3:2,4:4,5:8,12:8};
+ const data=[];
+ for(const entry of entries){
+  const [tag,type,n,val]=entry;
+  if(tag===273)continue;
+  const size=typeSize[type]*n;
+  if(size>4){cursor=align(cursor);data.push({entry,offset:cursor});cursor+=size;}
+ }
+ cursor=align(cursor);
+ const pixelOffset=cursor;
+ entries.find(e=>e[0]===273)[3]=pixelOffset;
+ const buffer=new ArrayBuffer(pixelOffset+rgba.length);
+ const dv=new DataView(buffer);
+ dv.setUint16(0,0x4949,true);dv.setUint16(2,42,true);dv.setUint32(4,ifdOffset,true);
+ dv.setUint16(ifdOffset,count,true);
+ function writeValue(type,n,value,offset){
+  if(type===2){for(let k=0;k<n;k++)dv.setUint8(offset+k,value.charCodeAt(k)||0);return;}
+  const vals=Array.isArray(value)?value:[value];
+  for(let k=0;k<n;k++){
+   if(type===3)dv.setUint16(offset+k*2,vals[k],true);
+   else if(type===4)dv.setUint32(offset+k*4,vals[k],true);
+   else if(type===12)dv.setFloat64(offset+k*8,vals[k],true);
+   else if(type===5){dv.setUint32(offset+k*8,vals[k*2],true);dv.setUint32(offset+k*8+4,vals[k*2+1],true);}
+  }
+ }
+ entries.forEach((e,i)=>{
+  const [tag,type,n,value]=e,off=ifdOffset+2+i*12;
+  dv.setUint16(off,tag,true);dv.setUint16(off+2,type,true);dv.setUint32(off+4,n,true);
+  const external=data.find(d=>d.entry===e);
+  if(external){dv.setUint32(off+8,external.offset,true);writeValue(type,n,value,external.offset);}
+  else writeValue(type,n,value,off+8);
+ });
+ dv.setUint32(ifdOffset+2+count*12,0,true);
+ new Uint8Array(buffer,pixelOffset,rgba.length).set(rgba);
+ return buffer;
+}
 /* GeoTIFF: map viewport only. No paper elements or cartographic annotations. */
 async function exportGeoTiff(){
  const button=byId('composer-export-geotiff');
@@ -423,16 +476,14 @@ async function exportGeoTiff(){
   const pixels=ctx.getImageData(0,0,width,height).data;
   // GeoTIFF 1.0: ModelPixelScaleTag, ModelTiepointTag, GeoKeyDirectoryTag.
   // 1024 ModelTypeProjected; 1025 RasterPixelIsArea; 3072 ProjectedCSTypeGeoKey.
-  const tags={t33550:[dx,dy,0],t33922:[0,0,0,minX,maxY,0],
-   t34735:[1,1,0,3,1024,0,1,1,1025,0,1,1,3072,0,1,3857]};
-  const encoded=UTIF.encodeImage(pixels,width,height,tags);
-  // Fail closed: never label an ordinary TIFF as GeoTIFF if metadata was dropped.
+  const encoded=encodeGeoTiffRGBA(pixels,width,height,dx,dy,minX,maxY);
+  // Verify the encoded IFD and geospatial tags before offering a download.
   const ifd=UTIF.decode(encoded)[0];
   const close=(a,b)=>Math.abs(a-b)<=Math.max(1e-7,Math.abs(b)*1e-10);
   if(!ifd||!ifd.t33550||!ifd.t33922||!ifd.t34735||
    !close(ifd.t33550[0],dx)||!close(ifd.t33550[1],dy)||
    !close(ifd.t33922[3],minX)||!close(ifd.t33922[4],maxY)||
-   !ifd.t34735.includes(3857))throw Error('O codificador não preservou os metadados GeoTIFF; nenhum arquivo foi salvo.');
+   !ifd.t34735.includes(3857))throw Error('Metadados GeoTIFF não foram preservados.');
   const blob=new Blob([encoded],{type:'image/tiff'});
   const url=URL.createObjectURL(blob),link=document.createElement('a');
   link.href=url;link.download='GeoEdu_Lab_quadro_EPSG3857.tif';
