@@ -1,4 +1,4 @@
-/* GeoEdu Lab v2.3.0 — compositor de prévia A4. Exportação será disponibilizada após validação. */
+/* GeoEdu Lab v2.3.1 — compositor de prévia A4. Exportação será disponibilizada após validação. */
 (()=>{
 'use strict';
 const byId=id=>document.getElementById(id);
@@ -380,6 +380,69 @@ async function exportRaster(){
  }finally{rasterExportBusy=false;exportButton.disabled=false;}
 }
 byId('composer-export-raster').addEventListener('click',exportRaster);
+
+/* GeoTIFF: map viewport only. No paper elements or cartographic annotations. */
+async function exportGeoTiff(){
+ const button=byId('composer-export-geotiff');
+ if(rasterExportBusy||dialog.hidden||!previewMap)return;
+ if(typeof html2canvas!=='function'||typeof UTIF==='undefined'){
+  status.textContent='Bibliotecas de exportação indisponíveis.';return;
+ }
+ rasterExportBusy=true;button.disabled=true;byId('composer-export-raster').disabled=true;
+ try{
+  previewMap.invalidateSize({pan:false});
+  await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+  const mapNode=previewMap.getContainer(),rect=mapNode.getBoundingClientRect();
+  const mapSize=previewMap.getSize();
+  if(mapSize.x<2||mapSize.y<2)throw Error('Quadro do mapa sem dimensões válidas.');
+  const dpi=Number(byId('composer-raster-dpi').value);
+  const ratio=dpi/150;
+  const width=Math.round(mapSize.x*ratio),height=Math.round(mapSize.y*ratio);
+  if(width*height>36000000)throw Error('Imagem muito grande para exportação segura. Reduza a resolução.');
+  const nw=previewMap.containerPointToLatLng([0,0]);
+  const se=previewMap.containerPointToLatLng([mapSize.x,mapSize.y]);
+  if(![nw.lat,nw.lng,se.lat,se.lng].every(Number.isFinite)||Math.abs(nw.lat)>85.05112878||Math.abs(se.lat)>85.05112878)throw Error('Extensão fora dos limites do Web Mercator.');
+  if(nw.lng>=se.lng||se.lng-nw.lng>=180)throw Error('Extensão atravessa o antimeridiano ou não é válida para esta exportação.');
+  const merc=(lat,lng)=>{
+   const phi=lat*Math.PI/180;
+   return [6378137*lng*Math.PI/180,6378137*Math.log(Math.tan(Math.PI/4+phi/2))];
+  };
+  const [minX,maxY]=merc(nw.lat,nw.lng),[maxX,minY]=merc(se.lat,se.lng);
+  const dx=(maxX-minX)/width,dy=(maxY-minY)/height;
+  if(!(dx>0&&dy>0))throw Error('Resolução espacial inválida.');
+  status.textContent='Capturando quadro geográfico para GeoTIFF…';
+  const captured=await html2canvas(mapNode,{backgroundColor:'#ffffff',useCORS:true,allowTaint:false,logging:false,scale:1,width:rect.width,height:rect.height,scrollX:0,scrollY:0,
+   onclone:doc=>{const n=doc.getElementById(mapNode.id);if(n)n.querySelectorAll('.leaflet-control-container,.composer-move-handle,.composer-resize-handle').forEach(el=>el.remove());}
+  });
+  if(!captured.width||!captured.height)throw Error('A captura do mapa não retornou pixels.');
+  const out=document.createElement('canvas');out.width=width;out.height=height;
+  const ctx=out.getContext('2d',{willReadFrequently:true});
+  if(!ctx)throw Error('Não foi possível criar a imagem.');
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,width,height);ctx.drawImage(captured,0,0,width,height);
+  status.textContent='Codificando GeoTIFF EPSG:3857…';
+  const pixels=ctx.getImageData(0,0,width,height).data;
+  // GeoTIFF 1.0: ModelPixelScaleTag, ModelTiepointTag, GeoKeyDirectoryTag.
+  // 1024 ModelTypeProjected; 1025 RasterPixelIsArea; 3072 ProjectedCSTypeGeoKey.
+  const tags={t33550:[dx,dy,0],t33922:[0,0,0,minX,maxY,0],
+   t34735:[1,1,0,3,1024,0,1,1,1025,0,1,1,3072,0,1,3857]};
+  const encoded=UTIF.encodeImage(pixels,width,height,tags);
+  // Fail closed: never label an ordinary TIFF as GeoTIFF if metadata was dropped.
+  const ifd=UTIF.decode(encoded)[0];
+  const close=(a,b)=>Math.abs(a-b)<=Math.max(1e-7,Math.abs(b)*1e-10);
+  if(!ifd||!ifd.t33550||!ifd.t33922||!ifd.t34735||
+   !close(ifd.t33550[0],dx)||!close(ifd.t33550[1],dy)||
+   !close(ifd.t33922[3],minX)||!close(ifd.t33922[4],maxY)||
+   !ifd.t34735.includes(3857))throw Error('O codificador não preservou os metadados GeoTIFF; nenhum arquivo foi salvo.');
+  const blob=new Blob([encoded],{type:'image/tiff'});
+  const url=URL.createObjectURL(blob),link=document.createElement('a');
+  link.href=url;link.download='GeoEdu_Lab_quadro_EPSG3857.tif';
+  document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
+  status.textContent='GeoTIFF EPSG:3857 gerado ('+width+' × '+height+' px). Verifique o SRC e o alinhamento no QGIS. Não inclui elementos externos ao quadro.';
+ }catch(err){status.textContent='GeoTIFF não gerado: '+err.message;}
+ finally{rasterExportBusy=false;button.disabled=false;byId('composer-export-raster').disabled=false;}
+}
+byId('composer-export-geotiff').addEventListener('click',exportGeoTiff);
+
 byId('composer-refresh').addEventListener('click',updatePreview);byId('composer-fit').addEventListener('click',()=>{autoFrame=true;fitFrame();});byId('composer-zoom-in').addEventListener('click',()=>{autoFrame=false;previewMap?.zoomIn();});byId('composer-zoom-out').addEventListener('click',()=>{autoFrame=false;previewMap?.zoomOut();});byId('composer-orientation').addEventListener('change',()=>{requestAnimationFrame(()=>{previewMap?.invalidateSize({pan:false});fitFrame();});});
 ['composer-map-title','composer-subtitle','composer-orientation','composer-legend','composer-north','composer-scale','composer-source','composer-source-text','composer-north-style'].forEach(id=>byId(id).addEventListener('input',updateLayout));
 ['composer-preview-title','composer-preview-subtitle','composer-source-display'].forEach(id=>byId(id).addEventListener('input',()=>edited.add(id)));byId('composer-legend-text').addEventListener('input',()=>{
