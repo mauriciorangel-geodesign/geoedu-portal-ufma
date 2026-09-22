@@ -1,4 +1,4 @@
-/* GeoEdu Lab v2.2.7 — compositor de prévia A4. Exportação será disponibilizada após validação. */
+/* GeoEdu Lab v2.2.8 — compositor de prévia A4. Exportação será disponibilizada após validação. */
 (()=>{
 'use strict';
 const byId=id=>document.getElementById(id);
@@ -331,6 +331,12 @@ async function exportRaster(){
    scale:1,width:rect.width,height:rect.height,scrollX:0,scrollY:0,
    onclone:doc=>{
     const page=doc.getElementById('composer-page');
+    // Export only the paper: never capture the editor's grey backdrop or paper shadow.
+    page.style.setProperty('background','#ffffff','important');
+    page.style.setProperty('background-color','#ffffff','important');
+    page.style.setProperty('background-image','none','important');
+    page.style.setProperty('box-shadow','none','important');
+    page.style.setProperty('border','0','important');
     page.querySelectorAll('.composer-move-handle,.composer-resize-handle').forEach(el=>el.remove());
     page.querySelectorAll('.composer-interactive').forEach(el=>{el.style.outline='none';el.style.boxShadow='none';});
     const legend=doc.getElementById('composer-legend-display');if(legend)legend.style.outline='none';
@@ -341,6 +347,8 @@ async function exportRaster(){
   if(!ctx)throw Error('Não foi possível criar o canvas de exportação.');
   ctx.fillStyle='#fff';ctx.fillRect(0,0,width,height);
   ctx.drawImage(canvas,0,0,width,height);
+  // Force opaque white paper only where the captured page is transparent;
+  // preserve thematic colours, imagery and intentional light-grey map features.
   if(format==='jpeg'){
    const blob=await new Promise(resolve=>out.toBlob(resolve,'image/jpeg',.94));
    if(!blob)throw Error('Falha ao codificar JPEG.');
