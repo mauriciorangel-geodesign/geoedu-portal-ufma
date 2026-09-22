@@ -1,4 +1,4 @@
-/* GeoEdu Lab v2.2.9 — compositor de prévia A4. Exportação será disponibilizada após validação. */
+/* GeoEdu Lab v2.3.0 — compositor de prévia A4. Exportação será disponibilizada após validação. */
 (()=>{
 'use strict';
 const byId=id=>document.getElementById(id);
@@ -301,6 +301,21 @@ byId('composer-export-pdf').addEventListener('click',()=>{
 window.addEventListener('beforeprint',syncPdfPageSize);
 
 
+function rasterDimensions(){
+ const dpi=Number(byId('composer-raster-dpi').value);
+ const portrait=byId('composer-orientation').value==='portrait';
+ return {width:Math.round((portrait?210:297)/25.4*dpi),height:Math.round((portrait?297:210)/25.4*dpi),dpi};
+}
+function updateRasterEstimate(){
+ const {width,height,dpi}=rasterDimensions();
+ const format=byId('composer-raster-format').value;
+ const rawMB=width*height*4/1048576;
+ byId('composer-raster-estimate').textContent=width+' × '+height+' px · '+dpi+' DPI · memória mínima aproximada para um bitmap RGBA: '+rawMB.toFixed(0)+' MB'+(dpi===600?' — alta resolução: pode exigir várias vezes essa memória durante a captura e codificação.':'')+(format==='tiff'?' TIFF sem compressão pode gerar arquivo de tamanho elevado.':'');
+}
+byId('composer-raster-format').addEventListener('change',updateRasterEstimate);
+byId('composer-raster-dpi').addEventListener('change',updateRasterEstimate);
+byId('composer-orientation').addEventListener('change',updateRasterEstimate);
+updateRasterEstimate();
 let rasterExportBusy=false;
 function saveRasterBlob(blob,extension){
  const url=URL.createObjectURL(blob),link=document.createElement('a');
@@ -310,21 +325,20 @@ function saveRasterBlob(blob,extension){
 async function exportRaster(){
  if(rasterExportBusy||dialog.hidden)return;
  const format=byId('composer-raster-format').value,dpi=Number(byId('composer-raster-dpi').value);
- if(!['jpeg','tiff'].includes(format)||![150,300].includes(dpi))return;
+ if(!['jpeg','tiff'].includes(format)||![150,300,600].includes(dpi))return;
  if(typeof html2canvas!=='function'||(format==='tiff'&&typeof UTIF==='undefined')){
   status.textContent='Biblioteca de exportação indisponível. Verifique sua conexão e atualize a página.';return;
  }
  rasterExportBusy=true;
  const exportButton=byId('composer-export-raster');exportButton.disabled=true;
- const previousStatus=status.textContent;
+ 
  try{
   status.textContent='Preparando exportação '+format.toUpperCase()+' a '+dpi+' DPI…';
   // Wait for the preview's visible tiles and vector canvas to settle.
   previewMap?.invalidateSize({pan:false});
   await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-  const orientation=byId('composer-orientation').value;
-  const width=Math.round((orientation==='portrait'?210:297)/25.4*dpi);
-  const height=Math.round((orientation==='portrait'?297:210)/25.4*dpi);
+  const {width,height}=rasterDimensions();
+  if(width*height>36000000)throw Error('Dimensões acima do limite de segurança de exportação.');
   const rect=preview.getBoundingClientRect();
   const canvas=await html2canvas(preview,{
    backgroundColor:'#ffffff',useCORS:true,allowTaint:false,logging:false,
@@ -342,6 +356,8 @@ async function exportRaster(){
     const legend=doc.getElementById('composer-legend-display');if(legend)legend.style.outline='none';
    }
   });
+  if(canvas.width===0||canvas.height===0)throw Error('A captura da página não retornou pixels.');
+  status.textContent='Codificando '+format.toUpperCase()+' ('+width+' × '+height+' px)…';
   const out=document.createElement('canvas');out.width=width;out.height=height;
   const ctx=out.getContext('2d',{willReadFrequently:format==='tiff'});
   if(!ctx)throw Error('Não foi possível criar o canvas de exportação.');
@@ -360,7 +376,7 @@ async function exportRaster(){
   }
   status.textContent='Exportação '+format.toUpperCase()+' iniciada ('+width+' × '+height+' px). Confira o arquivo: imagens-base remotas podem restringir a captura; este TIFF não é georreferenciado.';
  }catch(err){
-  status.textContent='Falha na exportação raster: '+err.message+'. Verifique se o mapa-base permite captura entre domínios; tente outro mapa-base ou resolução.';
+  status.textContent='Falha na exportação raster: '+err.message+'. Em 600 DPI, tente 300 DPI se o navegador ficar sem memória; verifique também as permissões do mapa-base.';
  }finally{rasterExportBusy=false;exportButton.disabled=false;}
 }
 byId('composer-export-raster').addEventListener('click',exportRaster);
