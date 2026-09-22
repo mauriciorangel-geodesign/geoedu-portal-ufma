@@ -1,4 +1,4 @@
-/* GeoEdu Lab v2.3.2 — compositor de prévia A4. Exportação será disponibilizada após validação. */
+/* GeoEdu Lab v2.3.3 — compositor de prévia A4. Exportação será disponibilizada após validação. */
 (()=>{
 'use strict';
 const byId=id=>document.getElementById(id);
@@ -448,9 +448,9 @@ async function exportGeoTiff(){
   const mapNode=previewMap.getContainer(),rect=mapNode.getBoundingClientRect();
   const mapSize=previewMap.getSize();
   if(mapSize.x<2||mapSize.y<2)throw Error('Quadro do mapa sem dimensões válidas.');
-  const dpi=Number(byId('composer-raster-dpi').value);
-  const ratio=dpi/150;
-  const width=Math.round(mapSize.x*ratio),height=Math.round(mapSize.y*ratio);
+  // GeoTIFF pixel size must reflect the map's actual rendered detail.
+  // Enlarging a screenshot to a nominal DPI only duplicates/interpolates pixels.
+  const width=Math.round(mapSize.x),height=Math.round(mapSize.y);
   if(width*height>36000000)throw Error('Imagem muito grande para exportação segura. Reduza a resolução.');
   const nw=previewMap.containerPointToLatLng([0,0]);
   const se=previewMap.containerPointToLatLng([mapSize.x,mapSize.y]);
@@ -463,7 +463,7 @@ async function exportGeoTiff(){
   const [minX,maxY]=merc(nw.lat,nw.lng),[maxX,minY]=merc(se.lat,se.lng);
   const dx=(maxX-minX)/width,dy=(maxY-minY)/height;
   if(!(dx>0&&dy>0))throw Error('Resolução espacial inválida.');
-  status.textContent='Capturando quadro geográfico para GeoTIFF…';
+  status.textContent='Capturando GeoTIFF na resolução nativa do quadro ('+width+' × '+height+' px). Para mais detalhes, aumente o zoom do mapa antes de exportar.';
   const captured=await html2canvas(mapNode,{backgroundColor:'#ffffff',useCORS:true,allowTaint:false,logging:false,scale:1,width:rect.width,height:rect.height,scrollX:0,scrollY:0,
    onclone:doc=>{const n=doc.getElementById(mapNode.id);if(n)n.querySelectorAll('.leaflet-control-container,.composer-move-handle,.composer-resize-handle').forEach(el=>el.remove());}
   });
@@ -471,8 +471,10 @@ async function exportGeoTiff(){
   const out=document.createElement('canvas');out.width=width;out.height=height;
   const ctx=out.getContext('2d',{willReadFrequently:true});
   if(!ctx)throw Error('Não foi possível criar a imagem.');
-  ctx.fillStyle='#fff';ctx.fillRect(0,0,width,height);ctx.drawImage(captured,0,0,width,height);
-  status.textContent='Codificando GeoTIFF EPSG:3857…';
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,width,height);
+  ctx.imageSmoothingEnabled=false;
+  ctx.drawImage(captured,0,0,width,height);
+  status.textContent='Codificando GeoTIFF EPSG:3857 na resolução nativa…';
   const pixels=ctx.getImageData(0,0,width,height).data;
   // GeoTIFF 1.0: ModelPixelScaleTag, ModelTiepointTag, GeoKeyDirectoryTag.
   // 1024 ModelTypeProjected; 1025 RasterPixelIsArea; 3072 ProjectedCSTypeGeoKey.
@@ -488,7 +490,7 @@ async function exportGeoTiff(){
   const url=URL.createObjectURL(blob),link=document.createElement('a');
   link.href=url;link.download='GeoEdu_Lab_quadro_EPSG3857.tif';
   document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
-  status.textContent='GeoTIFF EPSG:3857 gerado ('+width+' × '+height+' px). Verifique o SRC e o alinhamento no QGIS. Não inclui elementos externos ao quadro.';
+  status.textContent='GeoTIFF EPSG:3857 gerado ('+width+' × '+height+' px). Resolução nativa da tela; não é 150/300/600 DPI. Para maior detalhe real, aumente o zoom antes de exportar. Verifique SRC e alinhamento no QGIS.';
  }catch(err){status.textContent='GeoTIFF não gerado: '+err.message;}
  finally{rasterExportBusy=false;button.disabled=false;byId('composer-export-raster').disabled=false;}
 }
