@@ -1,4 +1,4 @@
-/* GeoEdu Lab v2.2.6 — compositor de prévia A4. Exportação será disponibilizada após validação. */
+/* GeoEdu Lab v2.2.7 — compositor de prévia A4. Exportação será disponibilizada após validação. */
 (()=>{
 'use strict';
 const byId=id=>document.getElementById(id);
@@ -300,6 +300,62 @@ byId('composer-export-pdf').addEventListener('click',()=>{
 });
 window.addEventListener('beforeprint',syncPdfPageSize);
 
+
+let rasterExportBusy=false;
+function saveRasterBlob(blob,extension){
+ const url=URL.createObjectURL(blob),link=document.createElement('a');
+ link.href=url;link.download='GeoEdu_Lab_mapa_'+(byId('composer-orientation').value==='portrait'?'retrato':'paisagem')+'.'+extension;
+ document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
+}
+async function exportRaster(){
+ if(rasterExportBusy||dialog.hidden)return;
+ const format=byId('composer-raster-format').value,dpi=Number(byId('composer-raster-dpi').value);
+ if(!['jpeg','tiff'].includes(format)||![150,300].includes(dpi))return;
+ if(typeof html2canvas!=='function'||(format==='tiff'&&typeof UTIF==='undefined')){
+  status.textContent='Biblioteca de exportação indisponível. Verifique sua conexão e atualize a página.';return;
+ }
+ rasterExportBusy=true;
+ const exportButton=byId('composer-export-raster');exportButton.disabled=true;
+ const previousStatus=status.textContent;
+ try{
+  status.textContent='Preparando exportação '+format.toUpperCase()+' a '+dpi+' DPI…';
+  // Wait for the preview's visible tiles and vector canvas to settle.
+  previewMap?.invalidateSize({pan:false});
+  await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+  const orientation=byId('composer-orientation').value;
+  const width=Math.round((orientation==='portrait'?210:297)/25.4*dpi);
+  const height=Math.round((orientation==='portrait'?297:210)/25.4*dpi);
+  const rect=preview.getBoundingClientRect();
+  const canvas=await html2canvas(preview,{
+   backgroundColor:'#ffffff',useCORS:true,allowTaint:false,logging:false,
+   scale:1,width:rect.width,height:rect.height,scrollX:0,scrollY:0,
+   onclone:doc=>{
+    const page=doc.getElementById('composer-page');
+    page.querySelectorAll('.composer-move-handle,.composer-resize-handle').forEach(el=>el.remove());
+    page.querySelectorAll('.composer-interactive').forEach(el=>{el.style.outline='none';el.style.boxShadow='none';});
+    const legend=doc.getElementById('composer-legend-display');if(legend)legend.style.outline='none';
+   }
+  });
+  const out=document.createElement('canvas');out.width=width;out.height=height;
+  const ctx=out.getContext('2d',{willReadFrequently:format==='tiff'});
+  if(!ctx)throw Error('Não foi possível criar o canvas de exportação.');
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,width,height);
+  ctx.drawImage(canvas,0,0,width,height);
+  if(format==='jpeg'){
+   const blob=await new Promise(resolve=>out.toBlob(resolve,'image/jpeg',.94));
+   if(!blob)throw Error('Falha ao codificar JPEG.');
+   saveRasterBlob(blob,'jpg');
+  }else{
+   const pixels=ctx.getImageData(0,0,width,height).data;
+   const buffer=UTIF.encodeImage(pixels,width,height,{t282:[dpi,1],t283:[dpi,1],t296:2});
+   saveRasterBlob(new Blob([buffer],{type:'image/tiff'}),'tif');
+  }
+  status.textContent='Exportação '+format.toUpperCase()+' iniciada ('+width+' × '+height+' px). Confira o arquivo: imagens-base remotas podem restringir a captura; este TIFF não é georreferenciado.';
+ }catch(err){
+  status.textContent='Falha na exportação raster: '+err.message+'. Verifique se o mapa-base permite captura entre domínios; tente outro mapa-base ou resolução.';
+ }finally{rasterExportBusy=false;exportButton.disabled=false;}
+}
+byId('composer-export-raster').addEventListener('click',exportRaster);
 byId('composer-refresh').addEventListener('click',updatePreview);byId('composer-fit').addEventListener('click',()=>{autoFrame=true;fitFrame();});byId('composer-zoom-in').addEventListener('click',()=>{autoFrame=false;previewMap?.zoomIn();});byId('composer-zoom-out').addEventListener('click',()=>{autoFrame=false;previewMap?.zoomOut();});byId('composer-orientation').addEventListener('change',()=>{requestAnimationFrame(()=>{previewMap?.invalidateSize({pan:false});fitFrame();});});
 ['composer-map-title','composer-subtitle','composer-orientation','composer-legend','composer-north','composer-scale','composer-source','composer-source-text','composer-north-style'].forEach(id=>byId(id).addEventListener('input',updateLayout));
 ['composer-preview-title','composer-preview-subtitle','composer-source-display'].forEach(id=>byId(id).addEventListener('input',()=>edited.add(id)));byId('composer-legend-text').addEventListener('input',()=>{
