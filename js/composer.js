@@ -1,4 +1,4 @@
-/* GeoEdu Lab v2.2.8 — compositor de prévia A4. Exportação será disponibilizada após validação. */
+/* GeoEdu Lab v2.2.9 — compositor de prévia A4. Exportação será disponibilizada após validação. */
 (()=>{
 'use strict';
 const byId=id=>document.getElementById(id);
@@ -289,14 +289,14 @@ pdfPageStyle.media='print';
 document.head.appendChild(pdfPageStyle);
 function syncPdfPageSize(){
  const portrait=byId('composer-orientation').value==='portrait';
- pdfPageStyle.textContent='@page { size: A4 '+(portrait?'portrait':'landscape')+'; margin: 0; }';
+ pdfPageStyle.textContent='@page { size: '+(portrait?'210mm 297mm':'297mm 210mm')+'; margin: 0; }';
  return portrait;
 }
 byId('composer-export-pdf').addEventListener('click',()=>{
  if(dialog.hidden)return;
  const portrait=syncPdfPageSize();
  status.textContent='PDF A4 '+(portrait?'retrato':'paisagem')+': orientação solicitada automaticamente ao navegador. Em Salvar como PDF, o tamanho do papel pode não ser editável; confira a orientação e a prévia antes de salvar. Use Todas as páginas (não Apenas páginas pares), margens Nenhuma, escala 100% e gráficos de fundo.';
- requestAnimationFrame(()=>window.print());
+ requestAnimationFrame(()=>requestAnimationFrame(()=>window.print()));
 });
 window.addEventListener('beforeprint',syncPdfPageSize);
 
