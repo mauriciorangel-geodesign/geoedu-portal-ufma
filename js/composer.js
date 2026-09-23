@@ -1,4 +1,4 @@
-/* GeoEdu Lab v2.3.4 — compositor de prévia A4. Exportação será disponibilizada após validação. */
+/* GeoEdu Lab v2.4.0 — compositor de prévia A4. Exportação será disponibilizada após validação. */
 (()=>{
 'use strict';
 const byId=id=>document.getElementById(id);
@@ -543,6 +543,67 @@ async function exportGeoTiff(){
  finally{rasterExportBusy=false;button.disabled=false;byId('composer-export-raster').disabled=false;}
 }
 byId('composer-export-geotiff').addEventListener('click',exportGeoTiff);
+
+/* v2.4.0 — supplementary cartographic metadata; never claim ISO 19115 compliance. */
+function exportCartographicMetadata(){
+ try{
+  if(dialog.hidden||!previewMap)throw Error('Abra o compositor e carregue o quadro geográfico.');
+  previewMap.invalidateSize({pan:false});
+  const size=previewMap.getSize();
+  if(size.x<2||size.y<2)throw Error('Quadro geográfico sem dimensões válidas.');
+  const nw=previewMap.containerPointToLatLng([0,0]),se=previewMap.containerPointToLatLng([size.x,size.y]);
+  const merc=(lat,lng)=>[6378137*lng*Math.PI/180,6378137*Math.log(Math.tan(Math.PI/4+lat*Math.PI/360))];
+  const [xmin,ymax]=merc(nw.lat,nw.lng),[xmax,ymin]=merc(se.lat,se.lng);
+  if(![xmin,ymax,xmax,ymin].every(Number.isFinite)||xmin>=xmax||ymin>=ymax)
+   throw Error('Extensão espacial inválida para EPSG:3857.');
+  const mode=byId('composer-geotiff-mode').value;
+  const factor=mode==='vector'?Number(byId('composer-geotiff-factor').value):1;
+  if(![1,2,3,4].includes(factor))throw Error('Fator de ampliação inválido.');
+  const width=Math.round(size.x*factor),height=Math.round(size.y*factor);
+  const value=id=>byId(id).value.trim();
+  const data={
+   schema:'geoedu-lab-cartographic-metadata-v1',
+   notice:'Documento complementar descritivo; não constitui certificado de qualidade, precisão ou conformidade ISO 19115.',
+   createdAt:new Date().toISOString(),
+   identification:{
+    title:value('composer-meta-title')||byId('composer-preview-title').textContent.trim(),
+    description:value('composer-meta-description'),
+    author:value('composer-meta-author'),
+    institution:value('composer-meta-institution'),
+    source:value('composer-meta-data-source')||byId('composer-source-display').textContent.trim(),
+    sourceDate:value('composer-meta-source-date')||null,
+    disciplineOrProject:value('composer-meta-project')
+   },
+   geographicFrame:{
+    crs:'EPSG:3857',
+    bboxMeters:{xmin,ymin,xmax,ymax},
+    bboxWgs84:{west:nw.lng,south:se.lat,east:se.lng,north:nw.lat},
+    mapZoom:previewMap.getZoom(),
+    nativePixelDimensions:{width:Math.round(size.x),height:Math.round(size.y)}
+   },
+   plannedGeoTiffExport:{
+    mode,
+    factor,
+    pixelDimensions:{width,height},
+    pixelSizeProjectedMeters:{x:(xmax-xmin)/width,y:(ymax-ymin)/height},
+    note:'Resolução calculada a partir da extensão e das dimensões de saída; não representa precisão posicional nem resolução dos dados de origem.'
+   },
+   visibleLayers:visibleThemeKeys().map(key=>({
+    id:key,
+    featureCount:(()=>{let n=0;thematicLayerByKey(key).eachLayer(child=>{if(child.feature)n++;});return n;})(),
+    source:'Consultar a documentação e os metadados originais da camada.'
+   }))
+  };
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json;charset=utf-8'});
+  const url=URL.createObjectURL(blob),link=document.createElement('a');
+  link.href=url;link.download='GeoEdu_Lab_metadados_cartograficos.json';
+  document.body.appendChild(link);link.click();link.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
+  status.textContent='Metadados JSON exportados. Confira as informações de autoria, fonte e data antes de compartilhar.';
+ }catch(err){status.textContent='Metadados não exportados: '+err.message;}
+}
+byId('composer-export-metadata').addEventListener('click',exportCartographicMetadata);
+
 
 byId('composer-refresh').addEventListener('click',updatePreview);byId('composer-fit').addEventListener('click',()=>{autoFrame=true;fitFrame();});byId('composer-zoom-in').addEventListener('click',()=>{autoFrame=false;previewMap?.zoomIn();});byId('composer-zoom-out').addEventListener('click',()=>{autoFrame=false;previewMap?.zoomOut();});byId('composer-orientation').addEventListener('change',()=>{requestAnimationFrame(()=>{previewMap?.invalidateSize({pan:false});fitFrame();});});
 ['composer-map-title','composer-subtitle','composer-orientation','composer-legend','composer-north','composer-scale','composer-source','composer-source-text','composer-north-style'].forEach(id=>byId(id).addEventListener('input',updateLayout));
