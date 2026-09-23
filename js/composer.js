@@ -1,4 +1,4 @@
-/* GeoEdu Lab v2.4.0 — compositor de prévia A4. Exportação será disponibilizada após validação. */
+/* GeoEdu Lab v2.4.1 — compositor de prévia A4. Exportação será disponibilizada após validação. */
 (()=>{
 'use strict';
 const byId=id=>document.getElementById(id);
@@ -603,6 +603,86 @@ function exportCartographicMetadata(){
  }catch(err){status.textContent='Metadados não exportados: '+err.message;}
 }
 byId('composer-export-metadata').addEventListener('click',exportCartographicMetadata);
+
+/* v2.4.1: portable layout project. References existing layers; no embedded data. */
+const projectFields=['composer-map-title','composer-subtitle','composer-orientation','composer-legend','composer-north','composer-scale','composer-source','composer-source-text','composer-north-style','composer-legend-text','composer-geotiff-mode','composer-geotiff-factor','composer-meta-title','composer-meta-description','composer-meta-author','composer-meta-institution','composer-meta-data-source','composer-meta-source-date','composer-meta-project'];
+const fixedProjectNodes=['composer-preview-title','composer-preview-subtitle','composer-source-display','composer-legend-display','composer-north-mark','composer-scale-display'];
+function projectNodeState(node){
+ const page=preview.getBoundingClientRect(),r=node.getBoundingClientRect();
+ return {id:node.id,x:(r.left-page.left)/page.width,y:(r.top-page.top)/page.height,w:r.width/page.width,h:r.height/page.height,
+  fontSize:parseFloat(node.style.fontSize)||null,text:node.classList.contains('composer-user-label')||['composer-preview-title','composer-preview-subtitle','composer-source-display'].includes(node.id)?node.textContent:null};
+}
+function downloadProject(){
+ try{
+  if(dialog.hidden||!previewMap)throw Error('Abra o compositor antes de salvar.');
+  const fields={};projectFields.forEach(id=>{const el=byId(id);fields[id]=el.type==='checkbox'?el.checked:el.value;});
+  const center=previewMap.getCenter();
+  const data={schema:'geoedu-composer-project',version:1,createdAt:new Date().toISOString(),
+   notice:'Arquivo de composição. As camadas, dados geográficos e estilos externos não estão incorporados.',
+   fields,basemap:activeBase(),layers:visibleThemeKeys(),view:{lat:center.lat,lng:center.lng,zoom:previewMap.getZoom()},
+   elements:[...preview.querySelectorAll('.composer-interactive')].filter(n=>!n.classList.contains('leaflet-container')).map(projectNodeState),
+   legendText:byId('composer-legend-display').querySelector('.composer-legend-content')?.textContent||''};
+  const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
+  const link=document.createElement('a');link.href=url;link.download='GeoEdu_Lab_projeto_cartografico.json';
+  document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
+  status.textContent='Projeto salvo. Guarde também os arquivos de dados e as configurações de simbologia das camadas.';
+ }catch(err){status.textContent='Não foi possível salvar o projeto: '+err.message;}
+}
+function validProject(p){
+ if(!p||p.schema!=='geoedu-composer-project'||p.version!==1||!p.fields||!p.view||!Array.isArray(p.elements)||p.elements.length>100||!Array.isArray(p.layers))throw Error('Arquivo de projeto incompatível.');
+ if(!Number.isFinite(p.view.lat)||!Number.isFinite(p.view.lng)||!Number.isFinite(p.view.zoom)||Math.abs(p.view.lat)>85||Math.abs(p.view.lng)>180||p.view.zoom<0||p.view.zoom>22)throw Error('Enquadramento inválido.');
+ for(const n of p.elements){
+  if(!n||typeof n.id!=='string'||!['composer-preview-title','composer-preview-subtitle','composer-source-display','composer-legend-display','composer-north-mark','composer-scale-display','composer-map-row'].includes(n.id)&&!/^composer-user-label-\\d+$/.test(n.id))throw Error('Elemento desconhecido.');
+  if(![n.x,n.y,n.w,n.h].every(v=>Number.isFinite(v)&&v>=0&&v<=1.01))throw Error('Dimensões inválidas.');
+  if(n.text!==null&&n.text!==undefined&&(typeof n.text!=='string'||n.text.length>5000))throw Error('Texto inválido.');
+ }
+}
+async function loadProject(file){
+ try{
+  if(!file||file.size>200000)throw Error('Selecione um projeto JSON com até 200 KB.');
+  const p=JSON.parse(await file.text());validProject(p);
+  const missing=p.layers.filter(k=>!visibleThemeKeys().includes(k));
+  // Never silently activate or fetch layers: source files may be unavailable.
+  if(!window.confirm('Abrir este projeto substituirá a composição atual. As camadas e sua simbologia devem estar carregadas previamente.'+(missing.length?'\\nCamadas não disponíveis: '+missing.join(', '):'')+'\\nContinuar?'))return;
+  for(const id of projectFields){const el=byId(id),value=p.fields[id];if(value===undefined)continue;
+   if(el.type==='checkbox'){if(typeof value==='boolean')el.checked=value;}
+   else if(typeof value==='string'&&value.length<=5000){if(el.tagName==='SELECT'&&![...el.options].some(o=>o.value===value))continue;el.value=value;}
+  }
+  edited.clear();
+  if(byId('composer-orientation').value!==layoutOrientation)changeOrientation();
+  preview.querySelectorAll('.composer-user-label').forEach(n=>n.remove());
+  selectedElement=null;
+  updatePreview();
+  await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+  const page=preview.getBoundingClientRect();
+  for(const item of p.elements){
+   let node=byId(item.id);
+   if(item.id.startsWith('composer-user-label-')){
+    node=document.createElement('div');node.id='composer-user-label-'+(++labelCount);
+    node.className='composer-movable composer-user-label';node.textContent=item.text||'';
+    node.contentEditable='true';preview.appendChild(node);makeInteractive(node);
+   }
+   if(!node||!preview.contains(node))continue;
+   const w=Math.min(page.width,Math.max(20,item.w*page.width)),h=Math.min(page.height,Math.max(20,item.h*page.height));
+   Object.assign(node.style,{left:Math.max(0,Math.min(page.width-w,item.x*page.width))+'px',top:Math.max(0,Math.min(page.height-h,item.y*page.height))+'px',width:w+'px',height:h+'px'});
+   if(item.fontSize&&item.fontSize>=6&&item.fontSize<=72)node.style.fontSize=item.fontSize+'px';
+   if(item.text!==null&&item.text!==undefined&&!['composer-legend-display','composer-scale-display','composer-north-mark'].includes(item.id)){
+    setElementContent(node,item.text,true);if(fixedProjectNodes.includes(item.id))edited.add(item.id);
+   }
+  }
+  if(typeof p.legendText==='string'&&p.legendText.trim()){
+   const content=byId('composer-legend-display').querySelector('.composer-legend-content');
+   if(content){content.textContent=p.legendText;legendDraft=content.innerHTML;}
+  }
+  autoFrame=false;previewMap.invalidateSize({pan:false});previewMap.setView([p.view.lat,p.view.lng],p.view.zoom,{animate:false});
+  requestAnimationFrame(()=>{previewMap.invalidateSize({pan:false});fitLegend();updateScale();});
+  status.textContent='Projeto aberto.'+(missing.length?' Camadas não recuperadas automaticamente: '+missing.join(', ')+'.':'')+' Verifique a simbologia, a legenda e o enquadramento antes de exportar.';
+ }catch(err){status.textContent='Projeto não aberto: '+err.message;}
+}
+byId('composer-save-project').addEventListener('click',downloadProject);
+byId('composer-open-project').addEventListener('click',()=>byId('composer-project-file').click());
+byId('composer-project-file').addEventListener('change',async e=>{const file=e.target.files[0];e.target.value='';if(file)await loadProject(file);});
+
 
 
 byId('composer-refresh').addEventListener('click',updatePreview);byId('composer-fit').addEventListener('click',()=>{autoFrame=true;fitFrame();});byId('composer-zoom-in').addEventListener('click',()=>{autoFrame=false;previewMap?.zoomIn();});byId('composer-zoom-out').addEventListener('click',()=>{autoFrame=false;previewMap?.zoomOut();});byId('composer-orientation').addEventListener('change',()=>{requestAnimationFrame(()=>{previewMap?.invalidateSize({pan:false});fitFrame();});});
