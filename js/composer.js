@@ -1,4 +1,4 @@
-/* GeoEdu Lab v2.4.1 — compositor de prévia A4. Exportação será disponibilizada após validação. */
+/* GeoEdu Lab v2.4.2 — compositor de prévia A4. Exportação será disponibilizada após validação. */
 (()=>{
 'use strict';
 const byId=id=>document.getElementById(id);
@@ -632,8 +632,8 @@ function validProject(p){
  if(!p||p.schema!=='geoedu-composer-project'||p.version!==1||!p.fields||!p.view||!Array.isArray(p.elements)||p.elements.length>100||!Array.isArray(p.layers))throw Error('Arquivo de projeto incompatível.');
  if(!Number.isFinite(p.view.lat)||!Number.isFinite(p.view.lng)||!Number.isFinite(p.view.zoom)||Math.abs(p.view.lat)>85||Math.abs(p.view.lng)>180||p.view.zoom<0||p.view.zoom>22)throw Error('Enquadramento inválido.');
  for(const n of p.elements){
-  if(!n||typeof n.id!=='string'||!['composer-preview-title','composer-preview-subtitle','composer-source-display','composer-legend-display','composer-north-mark','composer-scale-display','composer-map-row'].includes(n.id)&&!/^composer-user-label-\\d+$/.test(n.id))throw Error('Elemento desconhecido.');
-  if(![n.x,n.y,n.w,n.h].every(v=>Number.isFinite(v)&&v>=0&&v<=1.01))throw Error('Dimensões inválidas.');
+  if(!n||typeof n.id!=='string'||!['composer-preview-title','composer-preview-subtitle','composer-source-display','composer-legend-display','composer-north-mark','composer-scale-display','composer-map-row'].includes(n.id)&&!/^composer-user-label-[0-9]+$/.test(n.id))throw Error('Elemento desconhecido.');
+  if(![n.x,n.y,n.w,n.h].every(v=>Number.isFinite(v)&&v>=-0.03&&v<=1.05))throw Error('Dimensões inválidas.');
   if(n.text!==null&&n.text!==undefined&&(typeof n.text!=='string'||n.text.length>5000))throw Error('Texto inválido.');
  }
 }
@@ -674,7 +674,10 @@ async function loadProject(file){
    const content=byId('composer-legend-display').querySelector('.composer-legend-content');
    if(content){content.textContent=p.legendText;legendDraft=content.innerHTML;}
   }
-  autoFrame=false;previewMap.invalidateSize({pan:false});previewMap.setView([p.view.lat,p.view.lng],p.view.zoom,{animate:false});
+  // updatePreview schedules fitFrame twice; restore saved view only after those callbacks.
+  autoFrame=false;previewMap.invalidateSize({pan:false});
+  await new Promise(resolve=>setTimeout(resolve,90));
+  previewMap.setView([p.view.lat,p.view.lng],p.view.zoom,{animate:false});
   requestAnimationFrame(()=>{previewMap.invalidateSize({pan:false});fitLegend();updateScale();});
   status.textContent='Projeto aberto.'+(missing.length?' Camadas não recuperadas automaticamente: '+missing.join(', ')+'.':'')+' Verifique a simbologia, a legenda e o enquadramento antes de exportar.';
  }catch(err){status.textContent='Projeto não aberto: '+err.message;}
