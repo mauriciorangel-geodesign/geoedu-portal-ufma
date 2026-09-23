@@ -1,4 +1,4 @@
-/* GeoEdu Lab v2.3.3 — compositor de prévia A4. Exportação será disponibilizada após validação. */
+/* GeoEdu Lab v2.3.4 — compositor de prévia A4. Exportação será disponibilizada após validação. */
 (()=>{
 'use strict';
 const byId=id=>document.getElementById(id);
@@ -435,6 +435,45 @@ function encodeGeoTiffRGBA(rgba,w,h,dx,dy,minX,maxY){
  return buffer;
 }
 /* GeoTIFF: map viewport only. No paper elements or cartographic annotations. */
+/* High-resolution vector-only export: draw original GeoJSON geometry at output
+   pixel dimensions. Never upscale an already rasterized map screenshot. */
+function drawGeoTiffVectors(ctx,ratio){
+ const toPixel=coord=>{const p=previewMap.latLngToContainerPoint([coord[1],coord[0]]);return [p.x*ratio,p.y*ratio];};
+ const pathLine=(coords,close)=>{coords.forEach((c,i)=>{const [x,y]=toPixel(c);if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);});if(close)ctx.closePath();};
+ const render=(geometry,style,radius)=>{
+  if(!geometry)return;
+  const type=geometry.type,coords=geometry.coordinates;
+  if(type==='GeometryCollection'){geometry.geometries.forEach(g=>render(g,style,radius));return;}
+  ctx.beginPath();
+  if(type==='Point'||type==='MultiPoint'){
+   for(const c of (type==='Point'?[coords]:coords)){const [x,y]=toPixel(c);ctx.moveTo(x+radius*ratio,y);ctx.arc(x,y,radius*ratio,0,Math.PI*2);}
+  }else if(type==='LineString')pathLine(coords,false);
+  else if(type==='MultiLineString')coords.forEach(line=>pathLine(line,false));
+  else if(type==='Polygon')coords.forEach(ring=>pathLine(ring,true));
+  else if(type==='MultiPolygon')coords.forEach(poly=>poly.forEach(ring=>pathLine(ring,true)));
+  else return;
+  const fill=style.fillColor||style.color||'#3388ff';
+  const stroke=style.color||'#3388ff';
+  ctx.globalAlpha=Number.isFinite(+style.fillOpacity)?+style.fillOpacity:0.2;
+  ctx.fillStyle=fill;
+  if(type==='Polygon'||type==='MultiPolygon'||type==='Point'||type==='MultiPoint')ctx.fill('evenodd');
+  ctx.globalAlpha=Number.isFinite(+style.opacity)?+style.opacity:1;
+  ctx.strokeStyle=stroke;ctx.lineWidth=Math.max(.25,(+style.weight||1)*ratio);
+  if(style.dashArray)ctx.setLineDash(String(style.dashArray).split(/[ ,]+/).map(Number).filter(Number.isFinite).map(n=>n*ratio));
+  else ctx.setLineDash([]);
+  if(style.stroke!==false)ctx.stroke();
+  ctx.globalAlpha=1;ctx.setLineDash([]);
+ };
+ for(const key of visibleThemeKeys()){
+  const layer=thematicLayerByKey(key);
+  layer.eachLayer(child=>{
+   if(!child.feature||!child.toGeoJSON)return;
+   const style={...child.options,...categoryStyle(key,child.feature)};
+   const geometry=child.toGeoJSON().geometry;
+   render(geometry,style,child instanceof L.CircleMarker?child.getRadius():4);
+  });
+ }
+}
 async function exportGeoTiff(){
  const button=byId('composer-export-geotiff');
  if(rasterExportBusy||dialog.hidden||!previewMap)return;
@@ -450,7 +489,10 @@ async function exportGeoTiff(){
   if(mapSize.x<2||mapSize.y<2)throw Error('Quadro do mapa sem dimensões válidas.');
   // GeoTIFF pixel size must reflect the map's actual rendered detail.
   // Enlarging a screenshot to a nominal DPI only duplicates/interpolates pixels.
-  const width=Math.round(mapSize.x),height=Math.round(mapSize.y);
+  const vectorMode=byId('composer-geotiff-mode').value==='vector';
+  const factor=vectorMode?Number(byId('composer-geotiff-factor').value):1;
+  if(![1,2,3,4].includes(factor))throw Error('Fator de resolução inválido.');
+  const width=Math.round(mapSize.x*factor),height=Math.round(mapSize.y*factor);
   if(width*height>36000000)throw Error('Imagem muito grande para exportação segura. Reduza a resolução.');
   const nw=previewMap.containerPointToLatLng([0,0]);
   const se=previewMap.containerPointToLatLng([mapSize.x,mapSize.y]);
@@ -463,17 +505,23 @@ async function exportGeoTiff(){
   const [minX,maxY]=merc(nw.lat,nw.lng),[maxX,minY]=merc(se.lat,se.lng);
   const dx=(maxX-minX)/width,dy=(maxY-minY)/height;
   if(!(dx>0&&dy>0))throw Error('Resolução espacial inválida.');
-  status.textContent='Capturando GeoTIFF na resolução nativa do quadro ('+width+' × '+height+' px). Para mais detalhes, aumente o zoom do mapa antes de exportar.';
-  const captured=await html2canvas(mapNode,{backgroundColor:'#ffffff',useCORS:true,allowTaint:false,logging:false,scale:1,width:rect.width,height:rect.height,scrollX:0,scrollY:0,
-   onclone:doc=>{const n=doc.getElementById(mapNode.id);if(n)n.querySelectorAll('.leaflet-control-container,.composer-move-handle,.composer-resize-handle').forEach(el=>el.remove());}
-  });
-  if(!captured.width||!captured.height)throw Error('A captura do mapa não retornou pixels.');
   const out=document.createElement('canvas');out.width=width;out.height=height;
   const ctx=out.getContext('2d',{willReadFrequently:true});
   if(!ctx)throw Error('Não foi possível criar a imagem.');
   ctx.fillStyle='#fff';ctx.fillRect(0,0,width,height);
-  ctx.imageSmoothingEnabled=false;
-  ctx.drawImage(captured,0,0,width,height);
+  if(vectorMode){
+   if(!visibleThemeKeys().length)throw Error('Ative ao menos uma camada vetorial para exportar em alta resolução.');
+   status.textContent='Renderizando geometrias vetoriais em '+width+' × '+height+' pixels…';
+   drawGeoTiffVectors(ctx,factor);
+  }else{
+   status.textContent='Capturando GeoTIFF na resolução nativa do quadro…';
+   const captured=await html2canvas(mapNode,{backgroundColor:'#ffffff',useCORS:true,allowTaint:false,logging:false,scale:1,width:rect.width,height:rect.height,scrollX:0,scrollY:0,
+    onclone:doc=>{const n=doc.getElementById(mapNode.id);if(n)n.querySelectorAll('.leaflet-control-container,.composer-move-handle,.composer-resize-handle').forEach(el=>el.remove());}
+   });
+   if(!captured.width||!captured.height)throw Error('A captura do mapa não retornou pixels.');
+   ctx.imageSmoothingEnabled=false;
+   ctx.drawImage(captured,0,0,width,height);
+  }
   status.textContent='Codificando GeoTIFF EPSG:3857 na resolução nativa…';
   const pixels=ctx.getImageData(0,0,width,height).data;
   // GeoTIFF 1.0: ModelPixelScaleTag, ModelTiepointTag, GeoKeyDirectoryTag.
@@ -490,7 +538,7 @@ async function exportGeoTiff(){
   const url=URL.createObjectURL(blob),link=document.createElement('a');
   link.href=url;link.download='GeoEdu_Lab_quadro_EPSG3857.tif';
   document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
-  status.textContent='GeoTIFF EPSG:3857 gerado ('+width+' × '+height+' px). Resolução nativa da tela; não é 150/300/600 DPI. Para maior detalhe real, aumente o zoom antes de exportar. Verifique SRC e alinhamento no QGIS.';
+  status.textContent='GeoTIFF EPSG:3857 gerado ('+width+' × '+height+' px). Modo '+(vectorMode?'vetorial de alta resolução, fundo branco e sem mapa-base':'nativo com mapa-base')+'. Verifique SRC e alinhamento no QGIS.';
  }catch(err){status.textContent='GeoTIFF não gerado: '+err.message;}
  finally{rasterExportBusy=false;button.disabled=false;byId('composer-export-raster').disabled=false;}
 }
