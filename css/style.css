@@ -327,3 +327,18 @@ body.properties-open #coords.coords-display{right:382px}
 @media(max-width:900px){.courses{display:none}.topbar{padding-inline:12px}.brand-copy p{font-size:10px}.floating-panel{max-width:calc(100vw - 74px)}}
 @media(max-width:600px){.topbar{height:56px;padding:6px 10px}.topbar h1{font-size:18px}.brand-copy p{font-size:9px;max-width:245px;line-height:1.2}.map-wrap .zoom-dock{top:7px!important;left:7px!important}.map-wrap .tool-dock{top:79px!important;left:7px!important;gap:4px!important}.map-wrap .tool-dock .tool-group{padding:2px!important}.map-wrap .floating-panel:not(.properties-panel){top:8px;left:49px!important;width:calc(100vw - 57px)!important;max-height:calc(100% - 44px)}.map-wrap .geoedu-statusbar{min-height:30px;padding:4px 6px;gap:8px}.map-wrap .geoedu-statusbar #coords.coords-display{font-size:9px!important}.geoedu-status-scale{min-width:65px;max-width:110px}.geoedu-status-scale .geoedu-scale-labels{font-size:9px!important}}
 @media(max-height:600px) and (min-width:601px){.map-wrap .tool-dock{gap:3px!important}.map-wrap .tool-dock .tool-btn{height:27px!important;width:30px!important}.map-wrap .tool-dock .tool-group{gap:0!important}}
+
+/* v2.5.1 — painéis e descrições adequados ao toque em telas pequenas */
+@media(hover:none) and (pointer:coarse){
+ .map-wrap .tool-btn[data-tip]::after,.map-wrap .tool-btn[data-tip]:hover::after,.map-wrap .tool-btn[data-tip]:focus::after{display:none!important;opacity:0!important;visibility:hidden!important}
+ .map-wrap .tool-btn:active{transform:none!important}
+}
+@media(max-width:760px){
+ .map-wrap .floating-panel,.map-wrap .floating-panel:not(.properties-panel),.map-wrap .properties-panel{position:absolute!important;top:8px!important;left:49px!important;right:8px!important;width:auto!important;max-width:none!important;max-height:calc(100% - 46px)!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain;z-index:920!important}
+ .map-wrap .floating-panel.open{display:block!important}
+ .map-wrap .floating-panel input,.map-wrap .floating-panel select,.map-wrap .floating-panel textarea{max-width:100%;min-width:0}
+ .map-wrap .floating-panel .panel-close{position:sticky;top:0;float:right;z-index:2}
+ .map-wrap .tool-dock{z-index:820!important}
+ .map-wrap .geoedu-statusbar{z-index:830!important}
+}
+@media(max-width:400px){.map-wrap .floating-panel,.map-wrap .floating-panel:not(.properties-panel),.map-wrap .properties-panel{left:46px!important;right:5px!important;max-height:calc(100% - 43px)!important}}
