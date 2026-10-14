@@ -319,3 +319,11 @@ body.properties-open #coords.coords-display{right:382px}
 .map-wrap .tool-btn[data-tip]::after{z-index:9999!important;left:39px!important;opacity:0;visibility:hidden;pointer-events:none}
 .map-wrap .tool-btn[data-tip]:hover::after,.map-wrap .tool-btn[data-tip]:focus-visible::after{opacity:1!important;visibility:visible!important}
 @media(max-width:760px){.map-wrap .tool-dock{top:80px!important}.map-wrap .tool-btn[data-tip]::after{display:block!important;font-size:10px!important}}
+
+/* v2.5.0 — acessibilidade e responsividade progressiva, sem alterar o desktop validado */
+.map-wrap .tool-btn:focus-visible,.map-wrap .panel-close:focus-visible,.map-wrap button:focus-visible{outline:3px solid #ffdf78!important;outline-offset:2px!important;z-index:5}
+.map-wrap .tool-btn[data-tip]:focus-visible::after{opacity:1!important;visibility:visible!important}
+@media(prefers-reduced-motion:reduce){.tool-btn,.floating-panel,.tool-btn::after{transition:none!important;animation:none!important}}
+@media(max-width:900px){.courses{display:none}.topbar{padding-inline:12px}.brand-copy p{font-size:10px}.floating-panel{max-width:calc(100vw - 74px)}}
+@media(max-width:600px){.topbar{height:56px;padding:6px 10px}.topbar h1{font-size:18px}.brand-copy p{font-size:9px;max-width:245px;line-height:1.2}.map-wrap .zoom-dock{top:7px!important;left:7px!important}.map-wrap .tool-dock{top:79px!important;left:7px!important;gap:4px!important}.map-wrap .tool-dock .tool-group{padding:2px!important}.map-wrap .floating-panel:not(.properties-panel){top:8px;left:49px!important;width:calc(100vw - 57px)!important;max-height:calc(100% - 44px)}.map-wrap .geoedu-statusbar{min-height:30px;padding:4px 6px;gap:8px}.map-wrap .geoedu-statusbar #coords.coords-display{font-size:9px!important}.geoedu-status-scale{min-width:65px;max-width:110px}.geoedu-status-scale .geoedu-scale-labels{font-size:9px!important}}
+@media(max-height:600px) and (min-width:601px){.map-wrap .tool-dock{gap:3px!important}.map-wrap .tool-dock .tool-btn{height:27px!important;width:30px!important}.map-wrap .tool-dock .tool-group{gap:0!important}}
