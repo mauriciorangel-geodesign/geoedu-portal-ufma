@@ -74,7 +74,17 @@ infoModal.addEventListener('click',e=>{if(e.target===infoModal)infoModal.hidden=
 
 /* Coordenadas do cursor — v1.3.2 */
 const coordsDisplay=document.getElementById('coords');
-map.on('mousemove',e=>{if(!coordsDisplay)return;coordsDisplay.textContent='Lat: '+e.latlng.lat.toFixed(6)+'° | Long: '+e.latlng.lng.toFixed(6)+'°';});
+/* Read cursor position over the entire map viewport, including floating controls. */
+const mapViewport=map.getContainer().parentElement;
+mapViewport.addEventListener('pointermove',event=>{
+ if(!coordsDisplay||event.pointerType==='touch')return;
+ const rect=map.getContainer().getBoundingClientRect();
+ const x=event.clientX-rect.left,y=event.clientY-rect.top;
+ if(x<0||y<0||x>rect.width||y>rect.height)return;
+ const latlng=map.containerPointToLatLng([x,y]);
+ if(!Number.isFinite(latlng.lat)||!Number.isFinite(latlng.lng))return;
+ coordsDisplay.textContent='Lat: '+latlng.lat.toFixed(6)+'° | Long: '+latlng.lng.toFixed(6)+'°';
+ },{passive:true});
 /* Preserve last valid coordinates while cursor is over tools, attribution or status bar. */
 
 /* Núcleo de propriedades, estilo e consulta atributiva — consolidado v1.7.0 */
