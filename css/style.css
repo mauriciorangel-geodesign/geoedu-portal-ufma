@@ -300,3 +300,10 @@ body.properties-open #coords.coords-display{right:382px}
 .map-wrap .floating-panel:not(.properties-panel){left:64px}
 .map-wrap .geoedu-statusbar{z-index:810}
 @media(max-width:760px){.map-wrap .zoom-dock{top:8px;left:8px}.map-wrap .tool-dock{top:87px;left:8px;max-height:calc(100% - 125px)}.map-wrap .floating-panel:not(.properties-panel){left:52px;width:calc(100vw - 62px)}}
+
+/* v2.4.5 — barra de ferramentas fixa, zoom agrupado e coordenadas persistentes */
+.map-wrap .zoom-dock{display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:flex-start!important;gap:2px!important;padding:3px!important;border:1px solid rgba(180,233,223,.3)!important;background:linear-gradient(160deg,rgba(7,59,76,.57),rgba(13,98,103,.5))!important;box-sizing:border-box!important;width:40px!important}
+.map-wrap .zoom-dock .tool-btn{display:grid!important;place-items:center!important;flex:0 0 32px!important;margin:0!important}
+.map-wrap .tool-dock{visibility:visible!important;opacity:1!important;transform:none!important}
+.map-wrap .tool-dock .tool-group{flex-shrink:0}
+.map-wrap .geoedu-statusbar{pointer-events:none}
