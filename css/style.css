@@ -287,3 +287,16 @@ body.properties-open #coords.coords-display{right:382px}
 #map .leaflet-control-scale,#map .geoedu-scale-control-placeholder{display:none!important}
 .tool-dock{gap:12px}.tool-dock .tool-group{gap:3px;padding:4px;border:1px solid rgba(180,233,223,.3);background:linear-gradient(160deg,rgba(7,59,76,.57),rgba(13,98,103,.5))}
 @media(max-width:760px){.map-wrap .geoedu-statusbar{gap:8px;padding:3px 6px;font-size:9px}.geoedu-status-source{display:none}.geoedu-status-scale{min-width:70px}.tool-dock{gap:7px}}
+
+/* v2.4.4 — comandos compactos e afastamento da barra inferior */
+.map-wrap .zoom-dock{top:12px;left:14px;width:40px;padding:3px;gap:2px;border-radius:9px}
+.map-wrap .zoom-dock .tool-btn{width:32px;height:32px;flex:0 0 32px;border-radius:6px}
+.map-wrap .zoom-dock .zoom-btn{font-size:19px}
+.map-wrap .tool-dock{top:92px;left:14px;gap:7px;max-height:calc(100% - 132px);overflow-y:auto;overflow-x:visible;scrollbar-width:thin;padding-right:2px}
+.map-wrap .tool-dock .tool-group{padding:3px;gap:2px;border-radius:9px}
+.map-wrap .tool-dock .tool-btn{width:32px;height:32px;border-radius:6px}
+.map-wrap .tool-dock .tool-btn svg{width:18px;height:18px}
+.map-wrap .tool-btn:after{left:39px}
+.map-wrap .floating-panel:not(.properties-panel){left:64px}
+.map-wrap .geoedu-statusbar{z-index:810}
+@media(max-width:760px){.map-wrap .zoom-dock{top:8px;left:8px}.map-wrap .tool-dock{top:87px;left:8px;max-height:calc(100% - 125px)}.map-wrap .floating-panel:not(.properties-panel){left:52px;width:calc(100vw - 62px)}}
