@@ -75,7 +75,7 @@ infoModal.addEventListener('click',e=>{if(e.target===infoModal)infoModal.hidden=
 /* Coordenadas do cursor — v1.3.2 */
 const coordsDisplay=document.getElementById('coords');
 map.on('mousemove',e=>{if(!coordsDisplay)return;coordsDisplay.textContent='Lat: '+e.latlng.lat.toFixed(6)+'° | Long: '+e.latlng.lng.toFixed(6)+'°';});
-map.on('mouseout',()=>{if(coordsDisplay)coordsDisplay.textContent='Lat: — | Long: —';});
+/* Preserve last valid coordinates while cursor is over tools, attribution or status bar. */
 
 /* Núcleo de propriedades, estilo e consulta atributiva — consolidado v1.7.0 */
 const propPanel=document.getElementById('panel-properties'),propSummary=document.getElementById('prop-summary'),queryField=document.getElementById('query-field'),queryOperator=document.getElementById('query-operator'),queryValue=document.getElementById('query-value'),queryStatus=document.getElementById('query-status'),queryResults=document.getElementById('query-results'),attributeToggle=document.getElementById('attribute-toggle'),attributeTableWrap=document.getElementById('attribute-table-wrap'),attributeTableMeta=document.getElementById('attribute-table-meta'),attributeGrid=document.getElementById('attribute-grid');
