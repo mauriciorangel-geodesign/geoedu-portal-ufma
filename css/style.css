@@ -307,3 +307,15 @@ body.properties-open #coords.coords-display{right:382px}
 .map-wrap .tool-dock{visibility:visible!important;opacity:1!important;transform:none!important}
 .map-wrap .tool-dock .tool-group{flex-shrink:0}
 .map-wrap .geoedu-statusbar{pointer-events:none}
+
+/* v2.4.6 — dock fixo sem rolagem e dicas de ferramenta fora do recorte */
+.map-wrap .tool-dock{overflow:visible!important;max-height:none!important;scrollbar-width:none!important;gap:5px!important;padding-right:0!important}
+.map-wrap .tool-dock .tool-group{gap:1px!important;padding:2px!important}
+.map-wrap .tool-dock .tool-btn{width:30px!important;height:30px!important}
+.map-wrap .tool-dock .tool-btn svg{width:17px!important;height:17px!important}
+.map-wrap .zoom-dock{width:36px!important;padding:2px!important;gap:1px!important}
+.map-wrap .zoom-dock .tool-btn{width:30px!important;height:30px!important;flex-basis:30px!important}
+.map-wrap .tool-dock{top:84px!important}
+.map-wrap .tool-btn[data-tip]::after{z-index:9999!important;left:39px!important;opacity:0;visibility:hidden;pointer-events:none}
+.map-wrap .tool-btn[data-tip]:hover::after,.map-wrap .tool-btn[data-tip]:focus-visible::after{opacity:1!important;visibility:visible!important}
+@media(max-width:760px){.map-wrap .tool-dock{top:80px!important}.map-wrap .tool-btn[data-tip]::after{display:block!important;font-size:10px!important}}
