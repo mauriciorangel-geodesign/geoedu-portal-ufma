@@ -274,3 +274,16 @@ body.properties-open #coords.coords-display{right:382px}
  #composer-page.landscape{width:297mm!important;height:210mm!important;}
  #composer-page.portrait{width:210mm!important;height:297mm!important;}
 }
+
+/* v2.4.3 — Barra técnica discreta e grupos funcionais */
+.map-wrap .geoedu-statusbar{position:absolute;z-index:805;bottom:0;left:0;right:0;min-height:25px;padding:3px 12px;display:flex;align-items:center;gap:20px;background:rgba(6,26,41,.86);border-top:1px solid rgba(173,219,224,.24);color:#f1fafb;font:10px/1.3 Consolas,monospace;pointer-events:none}
+.map-wrap .geoedu-statusbar #coords.coords-display{display:inline!important;position:static!important;background:none!important;border:0!important;box-shadow:none!important;padding:0!important;margin:0!important;color:#f1fafb!important;font:inherit!important;white-space:nowrap}
+.geoedu-status-scale{display:block;flex:0 0 auto;min-width:80px;max-width:190px;color:#f1fafb!important;font:inherit!important}
+.geoedu-status-scale .geoedu-scale-labels{display:flex;justify-content:space-between;color:#f1fafb!important;font-size:10px!important}
+.geoedu-status-scale .geoedu-scale-blocks{display:flex;height:5px;border:1px solid #f1fafb;margin-top:1px}
+.geoedu-status-scale .geoedu-scale-blocks i{flex:1;background:#f1fafb}
+.geoedu-status-scale .geoedu-scale-blocks i:nth-child(even){background:transparent}
+.geoedu-status-source{margin-left:auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#d6e7e9}
+#map .leaflet-control-scale,#map .geoedu-scale-control-placeholder{display:none!important}
+.tool-dock{gap:12px}.tool-dock .tool-group{gap:3px;padding:4px;border:1px solid rgba(180,233,223,.3);background:linear-gradient(160deg,rgba(7,59,76,.57),rgba(13,98,103,.5))}
+@media(max-width:760px){.map-wrap .geoedu-statusbar{gap:8px;padding:3px 6px;font-size:9px}.geoedu-status-source{display:none}.geoedu-status-scale{min-width:70px}.tool-dock{gap:7px}}
