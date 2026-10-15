@@ -307,3 +307,75 @@ document.getElementById('lab-properties').onclick=()=>{if(localGeojson)openPrope
   requestAnimationFrame(sync);
  });
 })();
+
+
+/* v2.8.0 — projetos portáteis do WebGIS (independentes do compositor). */
+(()=>{
+ const status=document.getElementById('lab-project-status'),input=document.getElementById('lab-project-file');
+ const layerChecks={maranhao:maranhaoCheckbox,municipios:municipiosCheckbox,sedes:sedesCheckbox,drenagem:drenagemCheckbox,campus:document.getElementById('layer-campus')};
+ const message=(value,error=false)=>{status.textContent=value;status.className='lab-status '+(error?'error':'success');};
+ const clone=value=>JSON.parse(JSON.stringify(value));
+ const validGeoJSON=data=>data&&['FeatureCollection','Feature','Point','MultiPoint','LineString','MultiLineString','Polygon','MultiPolygon','GeometryCollection'].includes(data.type);
+ const styleFields=['color','weight','opacity','fillColor','fillOpacity','dashArray','radius'];
+ function safeStyle(raw,fallback){
+  const result={...fallback};
+  if(!raw||typeof raw!=='object')return result;
+  for(const field of styleFields){
+   const value=raw[field];
+   if(['color','fillColor'].includes(field)){if(typeof value==='string'&&/^#[0-9a-f]{3,8}$/i.test(value))result[field]=value;}
+   else if(field==='dashArray'){if(typeof value==='string'&&/^[0-9, .]{0,60}$/.test(value))result[field]=value;}
+   else if(Number.isFinite(value)&&value>=0&&value<=100)result[field]=value;
+  }
+  return result;
+ }
+ document.getElementById('lab-save-project').onclick=()=>{
+  try{
+   const center=map.getCenter();
+   const snapshot={format:'geoedu-webgis-project',schema:1,createdAt:new Date().toISOString(),
+    view:{center:[center.lat,center.lng],zoom:map.getZoom()},
+    basemap:Object.keys(basemaps).find(key=>basemaps[key]===currentBasemap)||'sentinel',
+    thematic:Object.fromEntries(Object.entries(layerChecks).map(([key,el])=>[key,!!el?.checked])),
+    styles:Object.fromEntries(Object.entries(thematicStyles).filter(([key])=>!key.startsWith('local-')).map(([key,value])=>[key,clone(value)])),
+    local:[...localLayers].map(([key,item])=>({name:item.name,data:item.data,visible:map.hasLayer(item.layer),style:clone(thematicStyles[key]),category:categoryModes[key]?clone(categoryModes[key]):null,graduated:graduatedModes[key]?clone(graduatedModes[key]):null}))
+   };
+   const blob=new Blob([JSON.stringify(snapshot)],{type:'application/json'});
+   const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='geoedu-projeto-'+new Date().toISOString().slice(0,10)+'.geoedu';document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+   message('Projeto preparado para download: '+snapshot.local.length+' camada(s) GeoJSON.');
+  }catch(error){console.error(error);message('Não foi possível salvar o projeto.',true);}
+ };
+ document.getElementById('lab-open-project').onclick=()=>input.click();
+ input.addEventListener('change',async()=>{
+  const file=input.files?.[0];input.value='';if(!file)return;
+  try{
+   if(file.size>80*1024*1024)throw Error('O arquivo de projeto excede 80 MB.');
+   const project=JSON.parse(await file.text());
+   if(project?.format!=='geoedu-webgis-project'||project.schema!==1||!Array.isArray(project.local))throw Error('Formato de projeto não reconhecido.');
+   if(project.local.length>50)throw Error('Limite de 50 camadas por projeto.');
+   for(const item of project.local){if(!validGeoJSON(item.data)||typeof item.name!=='string')throw Error('Camada GeoJSON inválida no projeto.');}
+   const center=project.view?.center,zoom=project.view?.zoom;
+   if(!Array.isArray(center)||center.length!==2||!center.every(Number.isFinite)||Math.abs(center[0])>90||Math.abs(center[1])>180||!Number.isFinite(zoom)||zoom<0||zoom>19)throw Error('Enquadramento inválido.');
+   if(!confirm('Abrir este projeto substituirá as camadas GeoJSON locais atuais. Deseja continuar?'))return;
+   clearLocal();
+   for(const item of project.local){
+    const key='local-'+(++localSequence),family=localPane(item.data);
+    const fallback={color:'#a35f16',weight:2,opacity:1,fillColor:'#d79a52',fillOpacity:.25,dashArray:'',radius:7};
+    const style=safeStyle(item.style,fallback);thematicStyles[key]=style;
+    const layer=L.geoJSON(item.data,{pane:'geo-'+family,renderer:geoRenderers[family],style:()=>style,pointToLayer:(f,ll)=>L.circleMarker(ll,{pane:'geo-point',renderer:geoRenderers.point,radius:style.radius,color:style.color,weight:style.weight,opacity:style.opacity,fillColor:style.fillColor,fillOpacity:style.fillOpacity}),onEachFeature:(f,l)=>bindModeAwarePopup(l,genericPopup(f.properties||{}))});
+    localLayers.set(key,{name:item.name.slice(0,250),data:item.data,layer});
+    if(item.visible)layer.addTo(map);
+   }
+   for(const [key,checked] of Object.entries(project.thematic||{})){
+    const control=layerChecks[key];if(control&&control.checked!==!!checked){control.checked=!!checked;control.dispatchEvent(new Event('change',{bubbles:true}));}
+   }
+   for(const [key,value] of Object.entries(project.styles||{})){
+    if(thematicStyles[key]&&!key.startsWith('local-')){Object.assign(thematicStyles[key],safeStyle(value,thematicStyles[key]));const layer=thematicLayerByKey(key);if(layer){layer.setStyle(thematicStyles[key]);updatePointMarkers(layer,thematicStyles[key]);}}
+   }
+   if(typeof project.basemap==='string'&&basemaps[project.basemap]){
+    const radio=document.querySelector('input[name="basemap"][value="'+project.basemap+'"]');
+    if(radio){radio.checked=true;radio.dispatchEvent(new Event('change',{bubbles:true}));}
+   }
+   map.setView(center,zoom);renderLocalList();refreshLegend();
+   message('Projeto aberto: '+project.local.length+' camada(s) GeoJSON. Confira os estilos temáticos e as consultas.');
+  }catch(error){console.error(error);message('Projeto não aberto: '+error.message,true);}
+ });
+})();
