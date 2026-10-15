@@ -151,3 +151,49 @@ queryField.addEventListener('change',()=>{const fs=featuresOf(dataByKey(activeQu
 
 /* Integração do Laboratório ao motor vetorial — consolidado v1.7.0 */
 document.getElementById('lab-properties').onclick=()=>{if(localGeojson)openProperties('local');};
+
+
+/* v2.5.5 — teclado e gerenciamento de foco em janelas e painéis. */
+(()=>{
+ const dialogPairs=[['btn-geoai','modal','modal-close'],['btn-info','info-modal','info-modal-close']];
+ const focusable='button:not([disabled]),a[href],input:not([disabled]):not([type="hidden"]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+ const visible=el=>el.getClientRects().length>0;
+ dialogPairs.forEach(([triggerId,dialogId,closeId])=>{
+  const trigger=document.getElementById(triggerId),dialog=document.getElementById(dialogId),close=document.getElementById(closeId);
+  if(!trigger||!dialog||!close)return;
+  trigger.addEventListener('click',()=>{requestAnimationFrame(()=>{if(!dialog.hidden)close.focus({preventScroll:true});});});
+  const restore=()=>{if(dialog.hidden)trigger.focus({preventScroll:true});};
+  close.addEventListener('click',restore);
+  dialog.addEventListener('click',e=>{if(e.target===dialog)restore();});
+  dialog.addEventListener('keydown',e=>{
+   if(e.key!=='Tab')return;
+   const nodes=[...dialog.querySelectorAll(focusable)].filter(visible);
+   if(!nodes.length){e.preventDefault();return;}
+   const first=nodes[0],last=nodes[nodes.length-1];
+   if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
+   else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
+  });
+ });
+ document.addEventListener('keydown',e=>{
+  if(e.key!=='Escape'||e.defaultPrevented)return;
+  const openedDialog=dialogPairs.find(([,id])=>!document.getElementById(id).hidden);
+  if(openedDialog){e.preventDefault();document.getElementById(openedDialog[1]).hidden=true;document.getElementById(openedDialog[0]).focus({preventScroll:true});return;}
+  const panel=[...document.querySelectorAll('.floating-panel.open')].reverse().find(visible);
+  if(!panel)return;
+  e.preventDefault();panel.classList.remove('open');
+  if(panel.id==='panel-properties')document.body.classList.remove('properties-open');
+  const trigger=document.querySelector('.tool-btn[data-panel="'+panel.id+'"]');
+  document.querySelectorAll('.tool-btn[data-panel]').forEach(btn=>btn.classList.remove('panel-active'));
+  if(trigger)trigger.focus({preventScroll:true});
+ });
+ document.querySelectorAll('.tool-btn[data-panel]').forEach(btn=>btn.addEventListener('click',()=>{
+  const panel=document.getElementById(btn.dataset.panel);
+  btn.setAttribute('aria-expanded',String(!!panel?.classList.contains('open')));
+  document.querySelectorAll('.tool-btn[data-panel]').forEach(other=>{if(other!==btn)other.setAttribute('aria-expanded','false');});
+ }));
+ document.querySelectorAll('.panel-close').forEach(close=>close.addEventListener('click',()=>{
+  const panel=close.closest('.floating-panel');
+  const trigger=panel&&document.querySelector('.tool-btn[data-panel="'+panel.id+'"]');
+  if(trigger){trigger.setAttribute('aria-expanded','false');trigger.focus({preventScroll:true});}
+ }));
+})();
