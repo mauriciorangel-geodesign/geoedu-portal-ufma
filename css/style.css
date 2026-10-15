@@ -369,3 +369,13 @@ body.properties-open #coords.coords-display{right:382px}
  .map-wrap .floating-panel .panel-close{min-width:32px;min-height:32px;font-size:21px!important}
  .map-wrap .floating-panel input[type=checkbox],.map-wrap .floating-panel input[type=radio]{min-width:17px;min-height:17px}
 }
+
+/* v2.5.4 — modais informativos compactos exclusivamente no smartphone */
+@media(max-width:600px){
+ #modal,#info-modal{padding:12px!important;box-sizing:border-box!important}
+ #modal .modal-card,#info-modal .modal-card{box-sizing:border-box!important;width:min(100%,440px)!important;max-width:100%!important;max-height:calc(100dvh - 36px)!important;overflow-y:auto!important;overscroll-behavior:contain;padding:19px 18px 17px!important;border-radius:12px!important;font-size:13px!important;line-height:1.45!important}
+ #modal .modal-card h2,#info-modal .modal-card h2{font-size:19px!important;line-height:1.22!important;letter-spacing:0!important;margin:0 30px 13px 0!important;overflow-wrap:anywhere}
+ #modal .modal-card p,#info-modal .modal-card p{font-size:13px!important;line-height:1.45!important;margin:0 0 11px!important;overflow-wrap:anywhere}
+ #modal .modal-card p:last-child,#info-modal .modal-card p:last-child{margin-bottom:0!important}
+ #modal .modal-card .close,#info-modal .modal-card .close{min-width:36px!important;min-height:36px!important;right:8px!important;top:7px!important;font-size:24px!important;line-height:1!important}
+}
