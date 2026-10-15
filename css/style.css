@@ -379,3 +379,9 @@ body.properties-open #coords.coords-display{right:382px}
  #modal .modal-card p:last-child,#info-modal .modal-card p:last-child{margin-bottom:0!important}
  #modal .modal-card .close,#info-modal .modal-card .close{min-width:36px!important;min-height:36px!important;right:8px!important;top:7px!important;font-size:24px!important;line-height:1!important}
 }
+
+/* v2.5.5 — foco de teclado acessível sem interferir no layout móvel validado */
+:where(button,a,input,select,textarea,[tabindex]):focus-visible{outline:3px solid #ffcf57!important;outline-offset:2px!important;box-shadow:0 0 0 5px rgba(7,59,76,.58)!important}
+.map-wrap .tool-btn:focus-visible{border-color:#fff3bf!important;transform:none!important}
+.map-wrap .floating-panel .panel-close:focus-visible,.modal .close:focus-visible{outline-offset:3px!important}
+@media(prefers-reduced-motion:reduce){html:focus-within{scroll-behavior:auto!important}.tool-btn,.floating-panel,.modal-card{animation:none!important;transition:none!important}}
