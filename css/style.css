@@ -357,3 +357,15 @@ body.properties-open #coords.coords-display{right:382px}
  .map-wrap .floating-panel.open{box-sizing:border-box!important;min-width:0!important}
 }
 @media(max-width:760px) and (hover:none){.map-wrap .tool-btn[data-tip]:focus-visible::after{content:none!important;display:none!important}}
+
+/* v2.5.3 — densidade visual dos painéis em smartphones, sem alterar desktop */
+@media(max-width:600px){
+ .map-wrap .floating-panel,.map-wrap .floating-panel:not(.properties-panel),.map-wrap .properties-panel{padding:12px 13px!important;border-radius:11px!important;font-size:13px!important;line-height:1.4!important}
+ .map-wrap .floating-panel h2{font-size:12px!important;line-height:1.3!important;letter-spacing:.045em!important;margin:1px 28px 9px 0!important}
+ .map-wrap .floating-panel p,.map-wrap .floating-panel small,.map-wrap .floating-panel .muted{line-height:1.4!important}
+ .map-wrap .floating-panel p{margin-top:6px;margin-bottom:9px}
+ .map-wrap .floating-panel label{font-size:13px!important;line-height:1.35!important;padding:6px 2px!important}
+ .map-wrap .floating-panel button:not(.panel-close),.map-wrap .floating-panel input[type=file]::file-selector-button{min-height:36px}
+ .map-wrap .floating-panel .panel-close{min-width:32px;min-height:32px;font-size:21px!important}
+ .map-wrap .floating-panel input[type=checkbox],.map-wrap .floating-panel input[type=radio]{min-width:17px;min-height:17px}
+}
