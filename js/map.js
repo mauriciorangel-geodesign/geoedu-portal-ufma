@@ -400,7 +400,7 @@ document.getElementById('lab-properties').onclick=()=>{if(localGeojson)openPrope
 })();
 
 
-/* GeoEdu temporal module v2.9.4 — local GeoJSON temporal exploration */
+/* GeoEdu temporal module v2.9.5 — local GeoJSON temporal exploration */
 (function(){
  const css=document.createElement('style');
  css.textContent=`#geoedu-temporal-toggle{position:fixed;left:17px;bottom:112px;z-index:1100;background:#145b57;color:#fff;border:1px solid #a6d5ce;border-radius:7px;padding:9px;cursor:pointer;box-shadow:0 2px 8px #0005}#geoedu-temporal-panel{position:fixed;left:68px;bottom:48px;z-index:1090;width:min(365px,calc(100vw - 85px));max-height:calc(100vh - 165px);overflow:auto;background:#edf6f4;color:#254744;padding:16px;border-radius:13px;box-shadow:0 4px 18px #0005;font:13px Arial,sans-serif}#geoedu-temporal-panel[hidden]{display:none}#geoedu-temporal-panel label{display:block;margin:10px 0 4px;font-weight:600}#geoedu-temporal-panel select,#geoedu-temporal-panel input[type=range]{width:100%}#geoedu-temporal-panel select{padding:7px;border:1px solid #b5ceca;border-radius:5px;background:white}#geoedu-temporal-panel button{padding:7px 10px;border:1px solid #9abbb5;background:white;border-radius:5px;cursor:pointer}#geoedu-temporal-panel button:focus-visible,#geoedu-temporal-toggle:focus-visible{outline:3px solid #ffc857}#geoedu-temporal-panel .temporal-controls{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}#geoedu-temporal-panel .temporal-metrics{background:#dcece8;padding:10px;border-radius:7px;margin-top:10px}#geoedu-temporal-panel .temporal-heading{display:flex;align-items:center;justify-content:space-between}#geoedu-temporal-panel .temporal-heading strong{font-size:15px}#geoedu-temporal-panel .temporal-chart{display:flex;align-items:end;gap:4px;height:106px;padding:10px 3px 0;border-bottom:1px solid #a8c7c0;margin-top:12px}#geoedu-temporal-panel .temporal-bar-wrap{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:end;height:100%;gap:4px}#geoedu-temporal-panel .temporal-bar{width:100%;max-width:36px;min-height:2px;border:0;border-radius:3px 3px 0 0;background:#23887d;padding:0;cursor:pointer}#geoedu-temporal-panel .temporal-bar[aria-current=true]{background:#e18a39;outline:2px solid #a85c16}#geoedu-temporal-panel .temporal-bar-label{font-size:10px;color:#254744}#geoedu-temporal-panel .temporal-metrics strong{font-size:16px}#geoedu-temporal-panel .temporal-note{font-size:11px;color:#486962;margin-top:7px}@media(max-width:600px){#geoedu-temporal-toggle{bottom:92px;left:10px}#geoedu-temporal-panel{left:54px;bottom:35px}}`;
@@ -439,7 +439,7 @@ document.getElementById('lab-properties').onclick=()=>{if(localGeojson)openPrope
  window.GeoEduTemporal={close:()=>{if(!panel.hidden)toggle(false);},refresh:()=>{if(!panel.hidden){restore();populateLayers();}}};
 })();
 
-/* GeoEdu temporal indicators v2.9.4 — chart and geodesic area */
+/* GeoEdu temporal indicators v2.9.5 — chart and geodesic area */
 (function(){
  const css=document.createElement('style');
  css.textContent=`#geoedu-temporal-panel{width:min(420px,calc(100vw - 85px))}#geoedu-temporal-dashboard{margin-top:12px;border-top:1px solid #bad2cc;padding-top:12px}#geoedu-temporal-dashboard[hidden]{display:none}#geoedu-temporal-dashboard .geoedu-stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}#geoedu-temporal-dashboard .geoedu-stat{background:#fff;border:1px solid #cbded9;border-radius:8px;padding:9px}#geoedu-temporal-dashboard .geoedu-stat span{display:block;font-size:11px;color:#4b6d68}#geoedu-temporal-dashboard .geoedu-stat strong{font-size:17px}#geoedu-temporal-dashboard .geoedu-chart{display:flex;align-items:end;gap:5px;height:112px;padding-top:10px;border-bottom:1px solid #93b2ab}#geoedu-temporal-dashboard .geoedu-chart button{flex:1;min-width:0;height:100%;padding:0 2px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;background:transparent;border:0;gap:3px}#geoedu-temporal-dashboard .geoedu-chart button .geoedu-bar{width:100%;max-width:48px;min-height:2px;background:#388f84;border-radius:3px 3px 0 0}#geoedu-temporal-dashboard .geoedu-chart button[aria-pressed=true] .geoedu-bar{background:#db8b37}#geoedu-temporal-dashboard .geoedu-chart button:focus-visible{outline:2px solid #245eac}#geoedu-temporal-dashboard .geoedu-chart button small{font-size:10px}#geoedu-temporal-dashboard .geoedu-note{font-size:11px;color:#486862;line-height:1.5;margin:8px 0}#geoedu-temporal-dashboard .geoedu-chart-title{margin:12px 0 0;font-size:12px;font-weight:700}`;
@@ -447,7 +447,22 @@ document.getElementById('lab-properties').onclick=()=>{if(localGeojson)openPrope
  const host=document.getElementById('geoedu-temporal-panel');
  if(!host)return;
  const dash=document.createElement('div');dash.id='geoedu-temporal-dashboard';dash.hidden=true;dash.innerHTML='<strong>Indicadores espaço-temporais</strong><div class="geoedu-stat-grid" style="margin-top:8px"><div class="geoedu-stat"><span>Feições no período</span><strong id="geoedu-stat-count">—</strong></div><div class="geoedu-stat"><span>Área estimada (km²)</span><strong id="geoedu-stat-area">—</strong></div><div class="geoedu-stat"><span>Variação da área anual</span><strong id="geoedu-stat-change">—</strong></div><div class="geoedu-stat"><span>Área acumulada (km²)</span><strong id="geoedu-stat-cumulative">—</strong></div></div><p class="geoedu-note">O gráfico interativo acima permite selecionar um ano. Área geodésica aproximada em WGS 84; não equivale necessariamente à estatística oficial do PRODES. Polígonos sobrepostos podem produzir dupla contagem.</p>';
- host.appendChild(dash);
+ // Single visual hierarchy: timeline → indicator cards → annual chart → methodology → reset.
+ const chart=document.getElementById('temporal-chart');
+ const redundantMetrics=document.getElementById('temporal-metrics');
+ const redundantNote=document.getElementById('temporal-note');
+ if(redundantMetrics){redundantMetrics.setAttribute('aria-hidden','true');redundantMetrics.style.display='none';}
+ if(redundantNote){redundantNote.setAttribute('aria-hidden','true');redundantNote.style.display='none';}
+ const resetButton=document.getElementById('temporal-reset');
+ const resetRow=resetButton?.parentElement;
+ if(resetRow&&resetRow.parentElement===host)host.insertBefore(dash,resetRow);
+ else host.appendChild(dash);
+ if(chart){
+  const heading=document.createElement('div');heading.className='geoedu-chart-title';heading.textContent='Evolução anual da área (km²)';
+  const note=dash.querySelector('.geoedu-note');
+  dash.insertBefore(heading,note);
+  dash.insertBefore(chart,note);
+ }
  const byId=id=>document.getElementById(id);
  const fmt=n=>Number.isFinite(n)?n.toLocaleString('pt-BR',{maximumFractionDigits:2}):'—';
  // Chamberlain-Duquette spherical polygon area, square kilometers; holes subtracted.
