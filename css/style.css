@@ -385,3 +385,12 @@ body.properties-open #coords.coords-display{right:382px}
 .map-wrap .tool-btn:focus-visible{border-color:#fff3bf!important;transform:none!important}
 .map-wrap .floating-panel .panel-close:focus-visible,.modal .close:focus-visible{outline-offset:3px!important}
 @media(prefers-reduced-motion:reduce){html:focus-within{scroll-behavior:auto!important}.tool-btn,.floating-panel,.modal-card{animation:none!important;transition:none!important}}
+
+/* v2.7.0 — lista compacta de camadas locais, preservando o painel responsivo. */
+.lab-local-layers{display:flex;flex-direction:column;gap:7px;margin:9px 0}
+.lab-local-row{display:flex;align-items:center;justify-content:space-between;gap:7px;padding:7px 8px;border:1px solid rgba(130,157,164,.35);border-radius:7px;min-width:0}
+.lab-local-name{display:flex;align-items:center;gap:7px;min-width:0;flex:1;padding:0!important}
+.lab-local-name span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.lab-local-actions{display:flex;gap:4px;flex-shrink:0}
+.lab-local-actions .panel-action{padding:5px 8px!important;min-width:30px;min-height:30px;margin:0!important}
+@media(max-width:600px){.lab-local-actions .panel-action{min-height:36px;min-width:34px}}
