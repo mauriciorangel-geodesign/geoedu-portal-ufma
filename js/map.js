@@ -78,6 +78,8 @@ function renderLocalList(){
   row.append(label,actions);localList.append(row);
  });
  syncLocalAlias();
+ labStatus.textContent=localLayers.size?localLayers.size+' camada(s) GeoJSON carregada(s) no Laboratório.':'Nenhum arquivo local carregado.';
+ labStatus.className='lab-status'+(localLayers.size?' success':'');
 }
 function removeLocalLayer(key){
  const item=localLayers.get(key);if(!item)return;
@@ -362,6 +364,9 @@ document.getElementById('lab-properties').onclick=()=>{if(localGeojson)openPrope
     const style=safeStyle(item.style,fallback);thematicStyles[key]=style;
     const layer=L.geoJSON(item.data,{pane:'geo-'+family,renderer:geoRenderers[family],style:()=>style,pointToLayer:(f,ll)=>L.circleMarker(ll,{pane:'geo-point',renderer:geoRenderers.point,radius:style.radius,color:style.color,weight:style.weight,opacity:style.opacity,fillColor:style.fillColor,fillOpacity:style.fillOpacity}),onEachFeature:(f,l)=>bindModeAwarePopup(l,genericPopup(f.properties||{}))});
     localLayers.set(key,{name:item.name.slice(0,250),data:item.data,layer});
+    if(item.category&&typeof item.category.field==='string'&&Array.isArray(item.category.values)&&item.category.colors&&typeof item.category.colors==='object')categoryModes[key]=item.category;
+    if(item.graduated&&typeof item.graduated.field==='string'&&Array.isArray(item.graduated.breaks)&&Array.isArray(item.graduated.colors))graduatedModes[key]=item.graduated;
+    if(categoryModes[key]||graduatedModes[key])applyCategoryRendering(key);
     if(item.visible)layer.addTo(map);
    }
    for(const [key,checked] of Object.entries(project.thematic||{})){
@@ -375,7 +380,7 @@ document.getElementById('lab-properties').onclick=()=>{if(localGeojson)openPrope
     if(radio){radio.checked=true;radio.dispatchEvent(new Event('change',{bubbles:true}));}
    }
    map.setView(center,zoom);renderLocalList();refreshLegend();
-   message('Projeto aberto: '+project.local.length+' camada(s) GeoJSON. Confira os estilos temáticos e as consultas.');
+   message('Projeto aberto: '+project.local.length+' camada(s) GeoJSON. Visibilidade e simbologia local recuperadas; confira as consultas.');
   }catch(error){console.error(error);message('Projeto não aberto: '+error.message,true);}
  });
 })();
