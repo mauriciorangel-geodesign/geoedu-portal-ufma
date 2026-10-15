@@ -114,6 +114,75 @@ fileInput.addEventListener('change',async()=>{
  labStatus.textContent=(added?added+' camada(s) adicionada(s). Total: '+localLayers.size+'. ':'')+(errors.length?'Não importados: '+errors.join('; '):'');
  labStatus.className='lab-status '+(errors.length?'error':'success');
 });
+/* GeoEdu v3.0.0 — Buffer experimental com distância métrica (Turf.js).
+   As feições geradas entram no mesmo gerenciador GeoJSON das camadas locais. */
+(()=>{
+ const source=document.getElementById('geoedu-buffer-source');
+ const distanceInput=document.getElementById('geoedu-buffer-distance');
+ const unit=document.getElementById('geoedu-buffer-unit');
+ const action=document.getElementById('geoedu-buffer-run');
+ const status=document.getElementById('geoedu-buffer-status');
+ const download=document.getElementById('geoedu-buffer-export');
+ let lastResult=null;
+ const report=(message,error=false)=>{status.textContent=message;status.className='lab-status '+(error?'error':'success');};
+ const refresh=()=>{
+  const selected=source.value;
+  source.replaceChildren();
+  for(const [key,item] of localLayers){const opt=document.createElement('option');opt.value=key;opt.textContent=item.name;source.append(opt);}
+  if(localLayers.has(selected))source.value=selected;
+  action.disabled=!localLayers.size;
+ };
+ const originalRender=renderLocalList;
+ // Layer list refreshes after imports, project reopening, and removals.
+ const observer=new MutationObserver(refresh);
+ observer.observe(localList,{childList:true});
+ refresh();
+ action.addEventListener('click',()=>{
+  if(!window.turf||typeof turf.buffer!=='function'){report('Biblioteca de geoprocessamento indisponível. Verifique a conexão.',true);return;}
+  const item=localLayers.get(source.value);
+  if(!item){report('Selecione uma camada GeoJSON válida.',true);return;}
+  const distance=Number(distanceInput.value);
+  if(!Number.isFinite(distance)||distance<=0||distance>1000){report('Informe uma distância maior que zero e até 1.000 na unidade selecionada.',true);return;}
+  const features=item.data.type==='FeatureCollection'?item.data.features:item.data.type==='Feature'?[item.data]:[{type:'Feature',properties:{},geometry:item.data}];
+  if(!features.length||features.length>5000){report('O buffer admite de 1 a 5.000 feições por operação.',true);return;}
+  const kilometers=unit.value==='meters'?distance/1000:distance;
+  action.disabled=true;report('Processando buffer…');
+  // Yield to the browser to show progress; computation stays client-side.
+  setTimeout(()=>{
+   try{
+    const output=[];
+    for(let i=0;i<features.length;i++){
+     const feature=features[i];if(!feature?.geometry)continue;
+     const result=turf.buffer(feature,kilometers,{units:'kilometers',steps:32});
+     if(!result?.geometry)continue;
+     result.properties={...feature.properties,_geoedu_source:item.name,_geoedu_distance_km:kilometers,_geoedu_source_index:i};
+     output.push(result);
+    }
+    if(!output.length)throw Error('Nenhuma geometria válida foi produzida.');
+    const data={type:'FeatureCollection',features:output};
+    const key='local-'+(++localSequence);
+    const name='Buffer '+distance+' '+(unit.value==='meters'?'m':'km')+' — '+item.name;
+    const color='#bf6533';
+    thematicStyles[key]={color,weight:1.5,opacity:1,fillColor:color,fillOpacity:.22,dashArray:'',radius:7};
+    const layer=L.geoJSON(data,{pane:'geo-polygon',renderer:geoRenderers.polygon,style:()=>thematicStyles[key],onEachFeature:(f,l)=>bindModeAwarePopup(l,genericPopup(f.properties||{}))}).addTo(map);
+    localLayers.set(key,{name,data,layer});
+    renderLocalList();refreshLegend();
+    const bounds=layer.getBounds();if(bounds.isValid())map.fitBounds(bounds,{padding:[20,20],maxZoom:14});
+    lastResult={data,name};download.disabled=false;
+    report(output.length+' buffer(s) gerado(s) como nova camada. Distância: '+distance+' '+(unit.value==='meters'?'m':'km')+'. Método aproximado Turf.js; valide no QGIS.');
+   }catch(error){console.error(error);report('Falha ao gerar buffer: '+error.message,true);}
+   finally{refresh();}
+  },20);
+ });
+ download.addEventListener('click',()=>{
+  if(!lastResult)return;
+  const blob=new Blob([JSON.stringify(lastResult.data)],{type:'application/geo+json'});
+  const url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download='geoedu_buffer_'+Date.now()+'.geojson';a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+ });
+})();
+
 let points=[],measureLine=null,previewLine=null,labels=[],pointMarkers=[];let areaPoints=[],areaPolygon=null,areaPreview=null,areaLabel=null,areaMarkers=[];const measureButton=document.getElementById('btn-measure'),areaButton=document.getElementById('btn-area');
 function distance(a,b){const R=6371,rad=x=>x*Math.PI/180,dLat=rad(b.lat-a.lat),dLon=rad(b.lng-a.lng),s=Math.sin(dLat/2)**2+Math.cos(rad(a.lat))*Math.cos(rad(b.lat))*Math.sin(dLon/2)**2;return 2*R*Math.asin(Math.sqrt(s));}function totalDistance(){let total=0;for(let i=1;i<points.length;i++)total+=distance(points[i-1],points[i]);return total;}
 function clearDistance(){points=[];if(measureLine){map.removeLayer(measureLine);measureLine=null;}if(previewLine){map.removeLayer(previewLine);previewLine=null;}labels.forEach(x=>map.removeLayer(x));labels=[];pointMarkers.forEach(x=>map.removeLayer(x));pointMarkers=[];}function clearArea(){areaPoints=[];if(areaPolygon){map.removeLayer(areaPolygon);areaPolygon=null;}if(areaPreview){map.removeLayer(areaPreview);areaPreview=null;}if(areaLabel){map.removeLayer(areaLabel);areaLabel=null;}areaMarkers.forEach(x=>map.removeLayer(x));areaMarkers=[];}
