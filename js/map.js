@@ -197,3 +197,54 @@ document.getElementById('lab-properties').onclick=()=>{if(localGeojson)openPrope
   if(trigger){trigger.setAttribute('aria-expanded','false');trigger.focus({preventScroll:true});}
  }));
 })();
+
+/* v2.5.6 — foco previsível nos painéis cartográficos, sem modificar o layout. */
+(()=>{
+ const triggers=[...document.querySelectorAll('.tool-btn[data-panel]')];
+ const panelOf=button=>document.getElementById(button.dataset.panel);
+ const visible=element=>!!element&&element.getClientRects().length>0;
+ const sync=()=>{
+  triggers.forEach(button=>{
+   const panel=panelOf(button);
+   button.setAttribute('aria-expanded',String(!!panel?.classList.contains('open')));
+  });
+ };
+ triggers.forEach(button=>{
+  button.setAttribute('aria-controls',button.dataset.panel);
+  button.setAttribute('aria-expanded',String(!!panelOf(button)?.classList.contains('open')));
+  button.addEventListener('click',()=>{
+   sync();
+   const panel=panelOf(button);
+   if(panel?.classList.contains('open')){
+    requestAnimationFrame(()=>{
+     if(panel.classList.contains('open')){
+      const close=panel.querySelector('.panel-close');
+      if(visible(close))close.focus({preventScroll:true});
+     }
+    });
+   }
+  });
+ });
+ document.querySelectorAll('.floating-panel').forEach(panel=>{
+  const heading=panel.querySelector('h2');
+  if(heading){
+   if(!heading.id)heading.id=panel.id+'-title';
+   panel.setAttribute('role','region');
+   panel.setAttribute('aria-labelledby',heading.id);
+  }
+  const close=panel.querySelector('.panel-close');
+  if(close)close.addEventListener('click',()=>requestAnimationFrame(sync));
+ });
+ document.querySelectorAll('.properties-btn').forEach(button=>button.addEventListener('click',()=>{
+  const panel=document.getElementById('panel-properties');
+  if(!panel)return;
+  requestAnimationFrame(()=>{
+   sync();
+   if(panel.classList.contains('open'))panel.querySelector('.panel-close')?.focus({preventScroll:true});
+  });
+ }));
+ document.addEventListener('keydown',event=>{
+  if(event.key!=='Escape')return;
+  requestAnimationFrame(sync);
+ });
+})();
