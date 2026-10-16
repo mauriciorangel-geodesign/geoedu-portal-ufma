@@ -224,12 +224,19 @@ fileInput.addEventListener('change',async()=>{
       try{
        const result=turf.intersect(aa,fb[j]);
        if(!result?.geometry)continue;
-       // Filtro experimental de área mínima: evita falsos polígonos em contatos por borda após reprojeção.
-       // Limite absoluto em m²: pode omitir interseções reais muito pequenas; documentar e revisar antes de uso geral.
+       // Filtro de área opcional, não topológico: limiares positivos podem eliminar interseções reais.
        const resultAreaM2=turf.area(result);
+       // Diagnóstico apenas: largura equivalente = área / maior extensão do bbox projetada localmente.
+       // Não é largura mínima geométrica nem prova de artefato; não filtrar automaticamente.
+       const resultBbox=turf.bbox(result);
+       const midLat=(resultBbox[1]+resultBbox[3])/2,midLon=(resultBbox[0]+resultBbox[2])/2;
+       const widthM=turf.distance([resultBbox[0],midLat],[resultBbox[2],midLat],{units:'kilometers'})*1000;
+       const heightM=turf.distance([midLon,resultBbox[1]],[midLon,resultBbox[3]],{units:'kilometers'})*1000;
+       const longestExtentM=Math.max(widthM,heightM);
+       const equivalentWidthM=longestExtentM>0?resultAreaM2/longestExtentM:null;
        if(!Number.isFinite(resultAreaM2)||resultAreaM2<=0){filteredSlivers++;continue;}
        if(minAreaM2>0&&resultAreaM2<minAreaM2){filteredSlivers++;continue;}
-       const props={_geoedu_layer_a:a.name,_geoedu_layer_b:b.name,_geoedu_index_a:i,_geoedu_index_b:j,_geoedu_area_geodesica_m2:resultAreaM2,_geoedu_area_minima_m2:minAreaM2};
+       const props={_geoedu_layer_a:a.name,_geoedu_layer_b:b.name,_geoedu_index_a:i,_geoedu_index_b:j,_geoedu_area_geodesica_m2:resultAreaM2,_geoedu_area_minima_m2:minAreaM2,_geoedu_extensao_bbox_max_m:longestExtentM,_geoedu_largura_equivalente_m:equivalentWidthM,_geoedu_diagnostico:'Largura equivalente estimada; não classifica automaticamente a validade topológica'};
        for(const [k,v] of Object.entries(aa.properties||{}))props['a_'+k]=v;
        for(const [k,v] of Object.entries(fb[j].properties||{}))props['b_'+k]=v;
        result.properties=props;output.push(result);
