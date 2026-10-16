@@ -212,7 +212,7 @@ fileInput.addEventListener('change',async()=>{
   run.disabled=true;report('Processando interseção…');
   setTimeout(()=>{
    try{
-    const rightBboxes=fb.map(f=>turf.bbox(f));const output=[];let failures=0;
+    const rightBboxes=fb.map(f=>turf.bbox(f));const output=[];let failures=0,filteredSlivers=0;
     for(let i=0;i<fa.length;i++){
      const aa=fa[i],ab=turf.bbox(aa);
      for(let j=0;j<fb.length;j++){
@@ -221,6 +221,10 @@ fileInput.addEventListener('change',async()=>{
       try{
        const result=turf.intersect(aa,fb[j]);
        if(!result?.geometry)continue;
+       // Filtro experimental de área mínima: evita falsos polígonos em contatos por borda após reprojeção.
+       // Limite absoluto em m²: pode omitir interseções reais muito pequenas; documentar e revisar antes de uso geral.
+       const minAreaM2=0.05;
+       if(turf.area(result)<minAreaM2){filteredSlivers++;continue;}
        const props={_geoedu_layer_a:a.name,_geoedu_layer_b:b.name,_geoedu_index_a:i,_geoedu_index_b:j};
        for(const [k,v] of Object.entries(aa.properties||{}))props['a_'+k]=v;
        for(const [k,v] of Object.entries(fb[j].properties||{}))props['b_'+k]=v;
@@ -228,7 +232,7 @@ fileInput.addEventListener('change',async()=>{
       }catch(err){failures++;console.warn('Interseção ignorada',i,j,err);}
      }
     }
-    if(!output.length){report('Nenhuma interseção poligonal encontrada.'+(failures?' '+failures+' par(es) com erro geométrico.':''),!!failures);return;}
+    if(!output.length){report('Nenhuma interseção poligonal encontrada.'+(filteredSlivers?' '+filteredSlivers+' resultado(s) abaixo de 0,05 m² filtrado(s).':'')+(failures?' '+failures+' par(es) com erro geométrico.':''),!!failures);return;}
     const data={type:'FeatureCollection',features:output},key='local-'+(++localSequence);
     const name='Interseção — '+a.name+' × '+b.name,color='#a3489a';
     thematicStyles[key]={color,weight:1.5,opacity:1,fillColor:color,fillOpacity:.55,dashArray:'',radius:7};
@@ -236,7 +240,7 @@ fileInput.addEventListener('change',async()=>{
     localLayers.set(key,{name,data,layer});renderLocalList();refreshLegend();
     const bounds=layer.getBounds();if(bounds.isValid())map.fitBounds(bounds,{padding:[20,20],maxZoom:14});
     lastResult=data;exportButton.disabled=false;
-    report(output.length+' feição(ões) de interseção gerada(s). '+(failures?failures+' par(es) ignorado(s) por erro geométrico. ':'')+'Valide no QGIS.');
+    report(output.length+' feição(ões) de interseção gerada(s). '+(filteredSlivers?filteredSlivers+' resultado(s) abaixo de 0,05 m² filtrado(s). ':'')+(failures?failures+' par(es) ignorado(s) por erro geométrico. ':'')+'Valide no QGIS.');
    }catch(error){console.error(error);report('Falha na interseção: '+error.message,true);}
    finally{refresh();}
   },20);
