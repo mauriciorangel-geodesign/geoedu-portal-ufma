@@ -401,3 +401,10 @@ body.properties-open #coords.coords-display{right:382px}
 .lab-local-name input[type="checkbox"]{flex:0 0 auto;margin:0}
 .lab-local-name span{display:block;flex:1 1 0;min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lab-local-actions{display:flex;flex:0 0 auto;justify-self:end;gap:4px;min-width:max-content}
+
+/* v3.1.2 — Layout robusto em duas linhas para nomes extensos. */
+.lab-local-row{display:flex!important;flex-direction:column!important;align-items:stretch!important;justify-content:flex-start!important;gap:5px!important;min-width:0!important;overflow:hidden!important}
+.lab-local-row>.lab-local-name{display:flex!important;width:100%!important;max-width:100%!important;min-width:0!important;align-items:center!important;gap:8px!important;overflow:hidden!important;flex:0 1 auto!important}
+.lab-local-row>.lab-local-name>input[type="checkbox"]{flex:0 0 auto!important}
+.lab-local-row>.lab-local-name>span{display:block!important;flex:1 1 auto!important;min-width:0!important;max-width:100%!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+.lab-local-row>.lab-local-actions{display:flex!important;position:static!important;align-self:flex-end!important;justify-content:flex-end!important;flex:0 0 auto!important;min-width:0!important;max-width:100%!important;gap:6px!important}
