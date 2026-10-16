@@ -394,3 +394,10 @@ body.properties-open #coords.coords-display{right:382px}
 .lab-local-actions{display:flex;gap:4px;flex-shrink:0}
 .lab-local-actions .panel-action{padding:5px 8px!important;min-width:30px;min-height:30px;margin:0!important}
 @media(max-width:600px){.lab-local-actions .panel-action{min-height:36px;min-width:34px}}
+
+/* v3.1.1 — Camadas locais: reservar espaço para ações sem sobrepor o nome. */
+.lab-local-row{display:grid!important;grid-template-columns:minmax(0,1fr) max-content!important;align-items:center;column-gap:8px;overflow:hidden}
+.lab-local-name{width:100%;max-width:100%;min-width:0;overflow:hidden;display:flex!important;flex-wrap:nowrap}
+.lab-local-name input[type="checkbox"]{flex:0 0 auto;margin:0}
+.lab-local-name span{display:block;flex:1 1 0;min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lab-local-actions{display:flex;flex:0 0 auto;justify-self:end;gap:4px;min-width:max-content}
