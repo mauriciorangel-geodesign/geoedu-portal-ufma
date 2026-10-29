@@ -190,6 +190,10 @@ fileInput.addEventListener('change',async()=>{
  const run=document.getElementById('geoedu-intersect-run'),status=document.getElementById('geoedu-intersect-status');
  const exportButton=document.getElementById('geoedu-intersect-export');
  const toleranceInput=document.getElementById('geoedu-intersect-min-area');let lastResult=null;
+ const invalidateResult=()=>{if(lastResult){status.textContent='Os parâmetros da interseção foram alterados. Execute novamente a análise.';status.className='lab-status';}lastResult=null;exportButton.disabled=true;};
+ [left,right].forEach(control=>control.addEventListener('change',invalidateResult));
+ toleranceInput.addEventListener('input',invalidateResult);
+ toleranceInput.addEventListener('change',invalidateResult);
  const report=(message,error=false)=>{status.textContent=message;status.className='lab-status '+(error?'error':'success');};
  const polygonFeatures=item=>{
   const data=item.data,features=data.type==='FeatureCollection'?data.features:data.type==='Feature'?[data]:[{type:'Feature',properties:{},geometry:data}];
@@ -202,9 +206,11 @@ fileInput.addEventListener('change',async()=>{
   if([...right.options].some(o=>o.value===b))right.value=b;
   else if(right.options.length>1)right.selectedIndex=1;
   run.disabled=left.options.length<2;
+  if(lastResult&&(a!==left.value||b!==right.value||!localLayers.has(lastResult.sourceA)||!localLayers.has(lastResult.sourceB)))invalidateResult();
  };
  new MutationObserver(refresh).observe(localList,{childList:true});refresh();
  run.addEventListener('click',()=>{
+  invalidateResult();
   if(!window.turf||typeof turf.intersect!=='function'){report('Turf.js indisponível. Verifique a conexão.',true);return;}
   const a=localLayers.get(left.value),b=localLayers.get(right.value);
   if(!a||!b||left.value===right.value){report('Selecione duas camadas poligonais diferentes.',true);return;}
@@ -236,6 +242,9 @@ fileInput.addEventListener('change',async()=>{
           throw new Error(`Camada ${camada}, feição ${indice+1}: coordenada inválida.`);
         }
       }
+      if(ring.some(p=>Math.abs(p[0])>180||Math.abs(p[1])>90)){
+        throw new Error(`Camada ${camada}, feição ${indice+1}: coordenadas fora de WGS84.`);
+      }
       const first=ring[0],last=ring[ring.length-1];
       if(first[0]!==last[0]||first[1]!==last[1]){
         throw new Error(`Camada ${camada}, feição ${indice+1}: anel não fechado.`);
@@ -250,7 +259,7 @@ fa.forEach((feature,i)=>geoeduValidarFeicao(feature,a.name,i));
 fb.forEach((feature,i)=>geoeduValidarFeicao(feature,b.name,i));
 const rightBboxes=fb.map(f=>turf.bbox(f));const output=[];let failures=0,filteredSlivers=0;
     const minAreaM2=Number(toleranceInput.value);
-    if(!Number.isFinite(minAreaM2)||minAreaM2<0){report('Informe uma área mínima válida (m²), maior ou igual a zero.',true);return;}
+    if(!toleranceInput.value.trim()||!Number.isFinite(minAreaM2)||minAreaM2<0){report('Informe uma área mínima válida (m²), maior ou igual a zero.',true);return;}
     for(let i=0;i<fa.length;i++){
      const aa=fa[i],ab=turf.bbox(aa);
      for(let j=0;j<fb.length;j++){
@@ -280,6 +289,7 @@ const rightBboxes=fb.map(f=>turf.bbox(f));const output=[];let failures=0,filtere
       }catch(err){failures++;console.warn('Interseção ignorada',i,j,err);}
      }
     }
+    if(failures){report(`Processamento incompleto: ${failures} par(es) com erro. Nenhuma camada ou exportação foi gerada. Consulte o console e corrija os dados.`,true);return;}
     if(!output.length){report('Nenhuma interseção poligonal encontrada.'+(filteredSlivers?' '+filteredSlivers+' resultado(s) filtrado(s) pelo limiar configurado de '+minAreaM2+' m².':'')+(failures?' '+failures+' par(es) com erro geométrico.':''),!!failures);return;}
     const data={type:'FeatureCollection',features:output},key='local-'+(++localSequence);
     const name='Interseção — '+a.name+' × '+b.name,color='#a3489a';
@@ -287,14 +297,14 @@ const rightBboxes=fb.map(f=>turf.bbox(f));const output=[];let failures=0,filtere
     const layer=L.geoJSON(data,{pane:'geo-polygon',renderer:geoRenderers.polygon,style:()=>thematicStyles[key],onEachFeature:(f,l)=>bindModeAwarePopup(l,genericPopup(f.properties||{}))}).addTo(map);
     localLayers.set(key,{name,data,layer});renderLocalList();refreshLegend();
     const bounds=layer.getBounds();if(bounds.isValid())map.fitBounds(bounds,{padding:[20,20],maxZoom:14});
-    lastResult=data;exportButton.disabled=false;
+    lastResult={data,sourceA:left.value,sourceB:right.value};exportButton.disabled=false;
     report(output.length+' feição(ões) de interseção gerada(s). '+(filteredSlivers?filteredSlivers+' resultado(s) filtrado(s) pelo limiar configurado de '+minAreaM2+' m². ':'')+(failures?failures+' par(es) ignorado(s) por erro geométrico. ':'')+'Valide no QGIS.');
    }catch(error){console.error(error);report('Falha na interseção: '+error.message,true);}
    finally{refresh();}
   },20);
  });
  exportButton.addEventListener('click',()=>{
-  if(!lastResult)return;const blob=new Blob([JSON.stringify(lastResult)],{type:'application/geo+json'});
+  if(!lastResult||exportButton.disabled)return;const blob=new Blob([JSON.stringify(lastResult.data)],{type:'application/geo+json'});
   const url=URL.createObjectURL(blob),a=document.createElement('a');
   a.href=url;a.download='geoedu_intersecao_'+Date.now()+'.geojson';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
  });
