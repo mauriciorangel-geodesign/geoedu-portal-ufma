@@ -183,12 +183,13 @@ fileInput.addEventListener('change',async()=>{
  });
 })();
 
-/* GeoEdu v3.1.0 — interseção poligonal experimental, Turf.js 6.5.
+/* GeoEdu v3.2.0 — interseção poligonal experimental, Turf.js 6.5.
    Processa pares de feições, preserva atributos com prefixos e gera camada local. */
 (()=>{
  const left=document.getElementById('geoedu-intersect-left'),right=document.getElementById('geoedu-intersect-right');
  const run=document.getElementById('geoedu-intersect-run'),status=document.getElementById('geoedu-intersect-status');
- const exportButton=document.getElementById('geoedu-intersect-export');let lastResult=null;
+ const exportButton=document.getElementById('geoedu-intersect-export');
+ const toleranceInput=document.getElementById('geoedu-intersect-min-area');let lastResult=null;
  const report=(message,error=false)=>{status.textContent=message;status.className='lab-status '+(error?'error':'success');};
  const polygonFeatures=item=>{
   const data=item.data,features=data.type==='FeatureCollection'?data.features:data.type==='Feature'?[data]:[{type:'Feature',properties:{},geometry:data}];
@@ -212,7 +213,44 @@ fileInput.addEventListener('change',async()=>{
   run.disabled=true;report('Processando interseção…');
   setTimeout(()=>{
    try{
-    const rightBboxes=fb.map(f=>turf.bbox(f));const output=[];let failures=0,filteredSlivers=0;
+    const geoeduValidarFeicao=(feature,camada,indice)=>{
+  const geometry=feature?.geometry;
+  if(!geometry||!['Polygon','MultiPolygon'].includes(geometry.type)){
+    throw new Error(`Camada ${camada}, feição ${indice+1}: geometria não poligonal.`);
+  }
+  const polygons=geometry.type==='Polygon'?[geometry.coordinates]:geometry.coordinates;
+  if(!Array.isArray(polygons)||!polygons.length){
+    throw new Error(`Camada ${camada}, feição ${indice+1}: coordenadas ausentes.`);
+  }
+  for(const polygon of polygons){
+    if(!Array.isArray(polygon)||!polygon.length){
+      throw new Error(`Camada ${camada}, feição ${indice+1}: polígono sem anéis.`);
+    }
+    for(const ring of polygon){
+      if(!Array.isArray(ring)||ring.length<4){
+        throw new Error(`Camada ${camada}, feição ${indice+1}: anel com menos de quatro posições.`);
+      }
+      for(const p of ring){
+        if(!Array.isArray(p)||p.length<2||
+           !Number.isFinite(p[0])||!Number.isFinite(p[1])){
+          throw new Error(`Camada ${camada}, feição ${indice+1}: coordenada inválida.`);
+        }
+      }
+      const first=ring[0],last=ring[ring.length-1];
+      if(first[0]!==last[0]||first[1]!==last[1]){
+        throw new Error(`Camada ${camada}, feição ${indice+1}: anel não fechado.`);
+      }
+    }
+  }
+  if(turf.kinks(feature).features.length>0){
+    throw new Error(`Camada ${camada}, feição ${indice+1}: autointerseção detectada.`);
+  }
+};
+fa.forEach((feature,i)=>geoeduValidarFeicao(feature,a.name,i));
+fb.forEach((feature,i)=>geoeduValidarFeicao(feature,b.name,i));
+const rightBboxes=fb.map(f=>turf.bbox(f));const output=[];let failures=0,filteredSlivers=0;
+    const minAreaM2=Number(toleranceInput.value);
+    if(!Number.isFinite(minAreaM2)||minAreaM2<0){report('Informe uma área mínima válida (m²), maior ou igual a zero.',true);return;}
     for(let i=0;i<fa.length;i++){
      const aa=fa[i],ab=turf.bbox(aa);
      for(let j=0;j<fb.length;j++){
@@ -223,16 +261,26 @@ fileInput.addEventListener('change',async()=>{
        if(!result?.geometry)continue;
        // Filtro experimental de área mínima: evita falsos polígonos em contatos por borda após reprojeção.
        // Limite absoluto em m²: pode omitir interseções reais muito pequenas; documentar e revisar antes de uso geral.
-       const minAreaM2=0.05;
-       if(turf.area(result)<minAreaM2){filteredSlivers++;continue;}
-       const props={_geoedu_layer_a:a.name,_geoedu_layer_b:b.name,_geoedu_index_a:i,_geoedu_index_b:j};
+       const resultAreaM2=turf.area(result);
+       // Área elipsoidal aproximada WGS84: transformação authálica e integração por segmentos.
+       // Não equivale ao algoritmo geodésico exato de Karney nem substitui a validação no QGIS.
+       const ellipsoidalAreaM2=geoeduWgs84Area(result.geometry);
+       if(!Number.isFinite(resultAreaM2)||!Number.isFinite(ellipsoidalAreaM2)||resultAreaM2<=0||ellipsoidalAreaM2<=0){filteredSlivers++;continue;}
+       // O limiar continua baseado na área esférica Turf.js para preservar o comportamento anterior.
+       if(minAreaM2>0&&resultAreaM2<minAreaM2){filteredSlivers++;continue;}
+       const props={_geoedu_layer_a:a.name,_geoedu_layer_b:b.name,_geoedu_index_a:i,_geoedu_index_b:j,
+        _geoedu_area_geodesica_m2:resultAreaM2, // Legado: área esférica Turf.js, não elipsoidal.
+        _geoedu_area_esferica_m2:resultAreaM2,
+        _geoedu_area_elipsoidal_m2:ellipsoidalAreaM2,
+        _geoedu_metodo_area:'filtro:turf_esferico;comparacao:wgs84_authalico_aproximado',
+        _geoedu_area_minima_m2:minAreaM2};
        for(const [k,v] of Object.entries(aa.properties||{}))props['a_'+k]=v;
        for(const [k,v] of Object.entries(fb[j].properties||{}))props['b_'+k]=v;
        result.properties=props;output.push(result);
       }catch(err){failures++;console.warn('Interseção ignorada',i,j,err);}
      }
     }
-    if(!output.length){report('Nenhuma interseção poligonal encontrada.'+(filteredSlivers?' '+filteredSlivers+' resultado(s) abaixo de 0,05 m² filtrado(s).':'')+(failures?' '+failures+' par(es) com erro geométrico.':''),!!failures);return;}
+    if(!output.length){report('Nenhuma interseção poligonal encontrada.'+(filteredSlivers?' '+filteredSlivers+' resultado(s) filtrado(s) pelo limiar configurado de '+minAreaM2+' m².':'')+(failures?' '+failures+' par(es) com erro geométrico.':''),!!failures);return;}
     const data={type:'FeatureCollection',features:output},key='local-'+(++localSequence);
     const name='Interseção — '+a.name+' × '+b.name,color='#a3489a';
     thematicStyles[key]={color,weight:1.5,opacity:1,fillColor:color,fillOpacity:.55,dashArray:'',radius:7};
@@ -240,7 +288,7 @@ fileInput.addEventListener('change',async()=>{
     localLayers.set(key,{name,data,layer});renderLocalList();refreshLegend();
     const bounds=layer.getBounds();if(bounds.isValid())map.fitBounds(bounds,{padding:[20,20],maxZoom:14});
     lastResult=data;exportButton.disabled=false;
-    report(output.length+' feição(ões) de interseção gerada(s). '+(filteredSlivers?filteredSlivers+' resultado(s) abaixo de 0,05 m² filtrado(s). ':'')+(failures?failures+' par(es) ignorado(s) por erro geométrico. ':'')+'Valide no QGIS.');
+    report(output.length+' feição(ões) de interseção gerada(s). '+(filteredSlivers?filteredSlivers+' resultado(s) filtrado(s) pelo limiar configurado de '+minAreaM2+' m². ':'')+(failures?failures+' par(es) ignorado(s) por erro geométrico. ':'')+'Valide no QGIS.');
    }catch(error){console.error(error);report('Falha na interseção: '+error.message,true);}
    finally{refresh();}
   },20);
