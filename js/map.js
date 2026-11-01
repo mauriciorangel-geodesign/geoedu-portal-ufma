@@ -189,8 +189,8 @@ fileInput.addEventListener('change',async()=>{
  const left=document.getElementById('geoedu-intersect-left'),right=document.getElementById('geoedu-intersect-right');
  const run=document.getElementById('geoedu-intersect-run'),status=document.getElementById('geoedu-intersect-status');
  const exportButton=document.getElementById('geoedu-intersect-export');
- const toleranceInput=document.getElementById('geoedu-intersect-min-area');let lastResult=null;
- const invalidateResult=()=>{if(lastResult){status.textContent='Os parâmetros da interseção foram alterados. Execute novamente a análise.';status.className='lab-status';}lastResult=null;exportButton.disabled=true;};
+ const toleranceInput=document.getElementById('geoedu-intersect-min-area');let lastResult=null;let revision=0;
+ const invalidateResult=()=>{revision++;if(lastResult){status.textContent='Os parâmetros da interseção foram alterados. Execute novamente a análise.';status.className='lab-status';}lastResult=null;exportButton.disabled=true;};
  [left,right].forEach(control=>control.addEventListener('change',invalidateResult));
  toleranceInput.addEventListener('input',invalidateResult);
  toleranceInput.addEventListener('change',invalidateResult);
@@ -216,8 +216,9 @@ fileInput.addEventListener('change',async()=>{
   if(!a||!b||left.value===right.value){report('Selecione duas camadas poligonais diferentes.',true);return;}
   const fa=polygonFeatures(a),fb=polygonFeatures(b);
   if(fa.length*fb.length>20000){report('Limite experimental: até 20.000 pares de feições. Recorte as camadas antes de executar.',true);return;}
-  run.disabled=true;report('Processando interseção…');
+  run.disabled=true;const currentRevision=revision;report('Processando interseção…');
   setTimeout(()=>{
+   if(currentRevision!==revision){status.textContent='Processamento cancelado: os parâmetros foram alterados. Execute novamente a análise.';status.className='lab-status';refresh();return;}
    try{
     const geoeduValidarFeicao=(feature,camada,indice)=>{
   const geometry=feature?.geometry;
