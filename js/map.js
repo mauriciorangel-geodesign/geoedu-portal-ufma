@@ -19,7 +19,7 @@ let currentBasemap=basemaps.sentinel.addTo(map);
 const statusSource=document.getElementById('geoedu-status-source');if(statusSource)statusSource.textContent='Fonte: Sentinel-2 cloudless · EOX';(()=>{const ctrl=L.control({position:'bottomright'});ctrl.onAdd=function(m){const el=document.getElementById('geoedu-status-scale');L.DomEvent.disableClickPropagation(el);function draw(){const w=m.getSize().x;if(w<20)return;const y=m.getSize().y/2,a=m.containerPointToLatLng([w/2-70,y]),b=m.containerPointToLatLng([w/2+70,y]);const d=a.distanceTo(b);if(!(d>0))return;const step=Math.pow(10,Math.floor(Math.log10(d))),target=d/step,nice=(target>=5?5:target>=2?2:1)*step,unit=nice>=1000?'km':'m',value=unit==='km'?nice/1000:nice,px=Math.min(170,Math.max(35,140*nice/d));el.innerHTML='<div class="geoedu-scale-labels"><span>0</span><span>'+Number((value/2).toPrecision(3))+'</span><span>'+Number(value.toPrecision(3))+' '+unit+'</span></div><div class="geoedu-scale-blocks"><i></i><i></i><i></i><i></i></div>';el.style.width=(px+18)+'px';}m.on('zoomend moveend resize',draw);requestAnimationFrame(draw);return L.DomUtil.create('div','geoedu-scale-control-placeholder');};ctrl.addTo(map);})();
 /* Ordem cartográfica fixa: base < polígonos < linhas < pontos < seleção. */
 const geoPanes={state:410,municipal:420,polygon:430,line:450,point:470,selection:490};
-Object.entries(geoPanes).forEach(([name,z])=>{const pane=map.createPane('geo-'+name);pane.style.zIndex=String(z);pane.style.pointerEvents='none';});
+Object.entries(geoPanes).forEach(([name,z])=>{const pane=map.createPane('geo-'+name);pane.style.zIndex=String(z);pane.style.pointerEvents = name === 'state' ? 'auto' : 'none';});
 const geoRenderers={state:L.canvas({pane:'geo-state'}),municipal:L.canvas({pane:'geo-municipal'}),polygon:L.canvas({pane:'geo-polygon'}),line:L.canvas({pane:'geo-line',padding:0.25}),point:L.canvas({pane:'geo-point'}),selection:L.canvas({pane:'geo-selection'})};
 function localPane(data){const types=new Set((data.type==='FeatureCollection'?data.features:[data]).map(f=>f.geometry?.type).filter(Boolean));if(types.size===1){const type=[...types][0];if(/Point$/.test(type))return 'point';if(/LineString$/.test(type))return 'line';}return 'polygon';}
 const localLayers=new Map();let localSequence=0;
@@ -43,6 +43,19 @@ async function loadMaranhao(){if(maranhao)return maranhao;layerStatus.textConten
 async function loadMunicipios(){if(municipios)return municipios;layerStatus.textContent='Carregando municípios…';try{const r=await fetch('data/geojson/municipios_ma_2025_web.geojson');if(!r.ok)throw new Error(`HTTP ${r.status}`);const data=await r.json();municipiosData=data;municipios=L.geoJSON(data,{pane:'geo-municipal',renderer:geoRenderers.municipal,style:()=>thematicStyles.municipios,onEachFeature:(f,l)=>{bindModeAwarePopup(l,municipioPopup(f.properties||{}));l.on({mouseover:e=>e.target.setStyle({weight:2,fillOpacity:.30}),mouseout:e=>e.target.setStyle(thematicStyles.municipios)});}});layerStatus.textContent='Municípios do Maranhão carregados.';layerStatus.className='lab-status success';return municipios;}catch(error){console.error(error);municipiosCheckbox.checked=false;layerStatus.textContent='Falha ao carregar os municípios.';layerStatus.className='lab-status error';throw error;}}
 document.querySelectorAll('input[name="basemap"]').forEach(r=>r.addEventListener('change',e=>{map.removeLayer(currentBasemap);currentBasemap=basemaps[e.target.value].addTo(map);if(currentBasemap.bringToBack)currentBasemap.bringToBack();}));
 maranhaoCheckbox.addEventListener('change',async e=>{if(e.target.checked){try{const l=await loadMaranhao();if(e.target.checked)l.addTo(map);}catch(_){}}else if(maranhao&&map.hasLayer(maranhao))map.removeLayer(maranhao);});
+function atualizarEventosMunicipais() {
+    const pane = map.getPane('geo-municipal');
+    if (!pane) return;
+    const ativo = Boolean(
+        municipiosCheckbox.checked &&
+        municipios &&
+        map.hasLayer(municipios)
+    );
+    pane.style.pointerEvents = ativo ? 'auto' : 'none';
+}
+
+map.on('layeradd layerremove', atualizarEventosMunicipais);
+municipiosCheckbox.addEventListener('change', atualizarEventosMunicipais);
 municipiosCheckbox.addEventListener('change',async e=>{if(e.target.checked){try{const l=await loadMunicipios();if(e.target.checked)l.addTo(map);if(maranhao&&map.hasLayer(maranhao))maranhao.bringToFront();}catch(_){}}else if(municipios&&map.hasLayer(municipios))map.removeLayer(municipios);});
 async function loadSedes(){if(sedes)return sedes;layerStatus.textContent='Carregando sedes municipais…';try{const r=await fetch('data/geojson/Sedes_MA.geojson');if(!r.ok)throw new Error('HTTP '+r.status);const data=await r.json();sedesData=data;sedes=L.geoJSON(data,{pane:'geo-point',pointToLayer:(f,ll)=>L.circleMarker(ll,{...thematicStyles.sedes,pane:'geo-point',renderer:geoRenderers.point}),onEachFeature:(f,l)=>bindModeAwarePopup(l,genericPopup(f.properties||{}))});layerStatus.textContent='Sedes municipais carregadas.';layerStatus.className='lab-status success';return sedes;}catch(error){console.error(error);sedesCheckbox.checked=false;layerStatus.textContent='Falha ao carregar as sedes municipais.';layerStatus.className='lab-status error';throw error;}}
 sedesCheckbox.addEventListener('change',async e=>{if(e.target.checked){try{const layer=await loadSedes();if(e.target.checked)layer.addTo(map);}catch(_){}}else if(sedes&&map.hasLayer(sedes))map.removeLayer(sedes);});
@@ -183,12 +196,17 @@ fileInput.addEventListener('change',async()=>{
  });
 })();
 
-/* GeoEdu v3.1.0 — interseção poligonal experimental, Turf.js 6.5.
+/* GeoEdu v3.2.0 — interseção poligonal experimental, Turf.js 6.5.
    Processa pares de feições, preserva atributos com prefixos e gera camada local. */
 (()=>{
  const left=document.getElementById('geoedu-intersect-left'),right=document.getElementById('geoedu-intersect-right');
  const run=document.getElementById('geoedu-intersect-run'),status=document.getElementById('geoedu-intersect-status');
- const exportButton=document.getElementById('geoedu-intersect-export');let lastResult=null;
+ const exportButton=document.getElementById('geoedu-intersect-export');
+ const toleranceInput=document.getElementById('geoedu-intersect-min-area');let lastResult=null;let revision=0;let pending=false;
+ const invalidateResult=()=>{revision++;if(lastResult){status.textContent='Os parâmetros da interseção foram alterados. Execute novamente a análise.';status.className='lab-status';}lastResult=null;exportButton.disabled=true;};
+ [left,right].forEach(control=>control.addEventListener('change',invalidateResult));
+ toleranceInput.addEventListener('input',invalidateResult);
+ toleranceInput.addEventListener('change',invalidateResult);
  const report=(message,error=false)=>{status.textContent=message;status.className='lab-status '+(error?'error':'success');};
  const polygonFeatures=item=>{
   const data=item.data,features=data.type==='FeatureCollection'?data.features:data.type==='Feature'?[data]:[{type:'Feature',properties:{},geometry:data}];
@@ -200,19 +218,66 @@ fileInput.addEventListener('change',async()=>{
   if([...left.options].some(o=>o.value===a))left.value=a;
   if([...right.options].some(o=>o.value===b))right.value=b;
   else if(right.options.length>1)right.selectedIndex=1;
-  run.disabled=left.options.length<2;
+  const selectionsChanged=a!==left.value||b!==right.value;
+  const sourcesChanged=!!lastResult&&(localLayers.get(lastResult.sourceA)!==lastResult.itemA||localLayers.get(lastResult.sourceB)!==lastResult.itemB||lastResult.itemA.data!==lastResult.dataA||lastResult.itemB.data!==lastResult.dataB);
+  if(selectionsChanged||sourcesChanged)invalidateResult();
+  run.disabled=pending||left.options.length<2;
  };
  new MutationObserver(refresh).observe(localList,{childList:true});refresh();
- run.addEventListener('click',()=>{
+ run.addEventListener('click',()=>{if(pending)return;
+  invalidateResult();
   if(!window.turf||typeof turf.intersect!=='function'){report('Turf.js indisponível. Verifique a conexão.',true);return;}
   const a=localLayers.get(left.value),b=localLayers.get(right.value);
   if(!a||!b||left.value===right.value){report('Selecione duas camadas poligonais diferentes.',true);return;}
   const fa=polygonFeatures(a),fb=polygonFeatures(b);
   if(fa.length*fb.length>20000){report('Limite experimental: até 20.000 pares de feições. Recorte as camadas antes de executar.',true);return;}
-  run.disabled=true;report('Processando interseção…');
+  pending=true;run.disabled=true;const currentRevision=revision;const sourceA=left.value,sourceB=right.value;const dataA=a.data,dataB=b.data;
+  const stillCurrent=()=>currentRevision===revision&&left.value===sourceA&&right.value===sourceB&&localLayers.get(sourceA)===a&&localLayers.get(sourceB)===b&&a.data===dataA&&b.data===dataB;
+  report('Processando interseção…');
   setTimeout(()=>{
+   if(!stillCurrent()){pending=false;if(currentRevision===revision)invalidateResult();status.textContent='Processamento cancelado: parâmetros ou camadas alterados. Execute novamente a análise.';status.className='lab-status';refresh();return;}
    try{
-    const rightBboxes=fb.map(f=>turf.bbox(f));const output=[];let failures=0,filteredSlivers=0;
+    const geoeduValidarFeicao=(feature,camada,indice)=>{
+  const geometry=feature?.geometry;
+  if(!geometry||!['Polygon','MultiPolygon'].includes(geometry.type)){
+    throw new Error(`Camada ${camada}, feição ${indice+1}: geometria não poligonal.`);
+  }
+  const polygons=geometry.type==='Polygon'?[geometry.coordinates]:geometry.coordinates;
+  if(!Array.isArray(polygons)||!polygons.length){
+    throw new Error(`Camada ${camada}, feição ${indice+1}: coordenadas ausentes.`);
+  }
+  for(const polygon of polygons){
+    if(!Array.isArray(polygon)||!polygon.length){
+      throw new Error(`Camada ${camada}, feição ${indice+1}: polígono sem anéis.`);
+    }
+    for(const ring of polygon){
+      if(!Array.isArray(ring)||ring.length<4){
+        throw new Error(`Camada ${camada}, feição ${indice+1}: anel com menos de quatro posições.`);
+      }
+      for(const p of ring){
+        if(!Array.isArray(p)||p.length<2||
+           !Number.isFinite(p[0])||!Number.isFinite(p[1])){
+          throw new Error(`Camada ${camada}, feição ${indice+1}: coordenada inválida.`);
+        }
+      }
+      if(ring.some(p=>Math.abs(p[0])>180||Math.abs(p[1])>90)){
+        throw new Error(`Camada ${camada}, feição ${indice+1}: coordenadas fora de WGS84.`);
+      }
+      const first=ring[0],last=ring[ring.length-1];
+      if(first[0]!==last[0]||first[1]!==last[1]){
+        throw new Error(`Camada ${camada}, feição ${indice+1}: anel não fechado.`);
+      }
+    }
+  }
+  if(turf.kinks(feature).features.length>0){
+    throw new Error(`Camada ${camada}, feição ${indice+1}: autointerseção detectada.`);
+  }
+};
+fa.forEach((feature,i)=>geoeduValidarFeicao(feature,a.name,i));
+fb.forEach((feature,i)=>geoeduValidarFeicao(feature,b.name,i));
+const rightBboxes=fb.map(f=>turf.bbox(f));const output=[];let failures=0,filteredSlivers=0;
+    const minAreaM2=Number(toleranceInput.value);
+    if(!toleranceInput.value.trim()||!Number.isFinite(minAreaM2)||minAreaM2<0){report('Informe uma área mínima válida (m²), maior ou igual a zero.',true);return;}
     for(let i=0;i<fa.length;i++){
      const aa=fa[i],ab=turf.bbox(aa);
      for(let j=0;j<fb.length;j++){
@@ -223,30 +288,44 @@ fileInput.addEventListener('change',async()=>{
        if(!result?.geometry)continue;
        // Filtro experimental de área mínima: evita falsos polígonos em contatos por borda após reprojeção.
        // Limite absoluto em m²: pode omitir interseções reais muito pequenas; documentar e revisar antes de uso geral.
-       const minAreaM2=0.05;
-       if(turf.area(result)<minAreaM2){filteredSlivers++;continue;}
-       const props={_geoedu_layer_a:a.name,_geoedu_layer_b:b.name,_geoedu_index_a:i,_geoedu_index_b:j};
+       const resultAreaM2=turf.area(result);
+       // Área elipsoidal aproximada WGS84: transformação authálica e integração por segmentos.
+       // Não equivale ao algoritmo geodésico exato de Karney nem substitui a validação no QGIS.
+       const ellipsoidalAreaM2=geoeduWgs84Area(result.geometry);
+       if(!Number.isFinite(resultAreaM2)||!Number.isFinite(ellipsoidalAreaM2)||resultAreaM2<=0||ellipsoidalAreaM2<=0){filteredSlivers++;continue;}
+       // O limiar continua baseado na área esférica Turf.js para preservar o comportamento anterior.
+       if(minAreaM2>0&&resultAreaM2<minAreaM2){filteredSlivers++;continue;}
+       const props={_geoedu_layer_a:a.name,_geoedu_layer_b:b.name,_geoedu_index_a:i,_geoedu_index_b:j,
+        _geoedu_area_geodesica_m2:resultAreaM2, // Legado: área esférica Turf.js, não elipsoidal.
+        _geoedu_area_esferica_m2:resultAreaM2,
+        _geoedu_area_elipsoidal_m2:ellipsoidalAreaM2,
+        _geoedu_metodo_area:'filtro:turf_esferico;comparacao:wgs84_authalico_aproximado',
+        _geoedu_area_minima_m2:minAreaM2};
        for(const [k,v] of Object.entries(aa.properties||{}))props['a_'+k]=v;
        for(const [k,v] of Object.entries(fb[j].properties||{}))props['b_'+k]=v;
        result.properties=props;output.push(result);
       }catch(err){failures++;console.warn('Interseção ignorada',i,j,err);}
      }
     }
-    if(!output.length){report('Nenhuma interseção poligonal encontrada.'+(filteredSlivers?' '+filteredSlivers+' resultado(s) abaixo de 0,05 m² filtrado(s).':'')+(failures?' '+failures+' par(es) com erro geométrico.':''),!!failures);return;}
+    if(failures){report(`Processamento incompleto: ${failures} par(es) com erro. Nenhuma camada ou exportação foi gerada. Consulte o console e corrija os dados.`,true);return;}
+    if(!output.length){report('Nenhuma interseção poligonal encontrada.'+(filteredSlivers?' '+filteredSlivers+' resultado(s) filtrado(s) pelo limiar configurado de '+minAreaM2+' m².':'')+(failures?' '+failures+' par(es) com erro geométrico.':''),!!failures);return;}
+    if(!stillCurrent()){report('Processamento cancelado: parâmetros ou camadas alterados.',true);return;}
     const data={type:'FeatureCollection',features:output},key='local-'+(++localSequence);
     const name='Interseção — '+a.name+' × '+b.name,color='#a3489a';
     thematicStyles[key]={color,weight:1.5,opacity:1,fillColor:color,fillOpacity:.55,dashArray:'',radius:7};
     const layer=L.geoJSON(data,{pane:'geo-polygon',renderer:geoRenderers.polygon,style:()=>thematicStyles[key],onEachFeature:(f,l)=>bindModeAwarePopup(l,genericPopup(f.properties||{}))}).addTo(map);
     localLayers.set(key,{name,data,layer});renderLocalList();refreshLegend();
     const bounds=layer.getBounds();if(bounds.isValid())map.fitBounds(bounds,{padding:[20,20],maxZoom:14});
-    lastResult=data;exportButton.disabled=false;
-    report(output.length+' feição(ões) de interseção gerada(s). '+(filteredSlivers?filteredSlivers+' resultado(s) abaixo de 0,05 m² filtrado(s). ':'')+(failures?failures+' par(es) ignorado(s) por erro geométrico. ':'')+'Valide no QGIS.');
+    lastResult={data,sourceA,sourceB,itemA:a,itemB:b,dataA,dataB};exportButton.disabled=false;
+    report(output.length+' feição(ões) de interseção gerada(s). '+(filteredSlivers?filteredSlivers+' resultado(s) filtrado(s) pelo limiar configurado de '+minAreaM2+' m². ':'')+(failures?failures+' par(es) ignorado(s) por erro geométrico. ':'')+'Valide no QGIS.');
    }catch(error){console.error(error);report('Falha na interseção: '+error.message,true);}
-   finally{refresh();}
+   finally{pending=false;refresh();}
   },20);
  });
  exportButton.addEventListener('click',()=>{
-  if(!lastResult)return;const blob=new Blob([JSON.stringify(lastResult)],{type:'application/geo+json'});
+  if(!lastResult||exportButton.disabled)return;
+   if(localLayers.get(lastResult.sourceA)!==lastResult.itemA||localLayers.get(lastResult.sourceB)!==lastResult.itemB||lastResult.itemA.data!==lastResult.dataA||lastResult.itemB.data!==lastResult.dataB){invalidateResult();refresh();return;}
+   const blob=new Blob([JSON.stringify(lastResult.data)],{type:'application/geo+json'});
   const url=URL.createObjectURL(blob),a=document.createElement('a');
   a.href=url;a.download='geoedu_intersecao_'+Date.now()+'.geojson';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
  });
