@@ -19,7 +19,7 @@ let currentBasemap=basemaps.sentinel.addTo(map);
 const statusSource=document.getElementById('geoedu-status-source');if(statusSource)statusSource.textContent='Fonte: Sentinel-2 cloudless · EOX';(()=>{const ctrl=L.control({position:'bottomright'});ctrl.onAdd=function(m){const el=document.getElementById('geoedu-status-scale');L.DomEvent.disableClickPropagation(el);function draw(){const w=m.getSize().x;if(w<20)return;const y=m.getSize().y/2,a=m.containerPointToLatLng([w/2-70,y]),b=m.containerPointToLatLng([w/2+70,y]);const d=a.distanceTo(b);if(!(d>0))return;const step=Math.pow(10,Math.floor(Math.log10(d))),target=d/step,nice=(target>=5?5:target>=2?2:1)*step,unit=nice>=1000?'km':'m',value=unit==='km'?nice/1000:nice,px=Math.min(170,Math.max(35,140*nice/d));el.innerHTML='<div class="geoedu-scale-labels"><span>0</span><span>'+Number((value/2).toPrecision(3))+'</span><span>'+Number(value.toPrecision(3))+' '+unit+'</span></div><div class="geoedu-scale-blocks"><i></i><i></i><i></i><i></i></div>';el.style.width=(px+18)+'px';}m.on('zoomend moveend resize',draw);requestAnimationFrame(draw);return L.DomUtil.create('div','geoedu-scale-control-placeholder');};ctrl.addTo(map);})();
 /* Ordem cartográfica fixa: base < polígonos < linhas < pontos < seleção. */
 const geoPanes={state:410,municipal:420,polygon:430,line:450,point:470,selection:490};
-Object.entries(geoPanes).forEach(([name,z])=>{const pane=map.createPane('geo-'+name);pane.style.zIndex=String(z);pane.style.pointerEvents='none';});
+Object.entries(geoPanes).forEach(([name,z])=>{const pane=map.createPane('geo-'+name);pane.style.zIndex=String(z);pane.style.pointerEvents = name === 'state' ? 'auto' : 'none';});
 const geoRenderers={state:L.canvas({pane:'geo-state'}),municipal:L.canvas({pane:'geo-municipal'}),polygon:L.canvas({pane:'geo-polygon'}),line:L.canvas({pane:'geo-line',padding:0.25}),point:L.canvas({pane:'geo-point'}),selection:L.canvas({pane:'geo-selection'})};
 function localPane(data){const types=new Set((data.type==='FeatureCollection'?data.features:[data]).map(f=>f.geometry?.type).filter(Boolean));if(types.size===1){const type=[...types][0];if(/Point$/.test(type))return 'point';if(/LineString$/.test(type))return 'line';}return 'polygon';}
 const localLayers=new Map();let localSequence=0;
@@ -43,6 +43,19 @@ async function loadMaranhao(){if(maranhao)return maranhao;layerStatus.textConten
 async function loadMunicipios(){if(municipios)return municipios;layerStatus.textContent='Carregando municípios…';try{const r=await fetch('data/geojson/municipios_ma_2025_web.geojson');if(!r.ok)throw new Error(`HTTP ${r.status}`);const data=await r.json();municipiosData=data;municipios=L.geoJSON(data,{pane:'geo-municipal',renderer:geoRenderers.municipal,style:()=>thematicStyles.municipios,onEachFeature:(f,l)=>{bindModeAwarePopup(l,municipioPopup(f.properties||{}));l.on({mouseover:e=>e.target.setStyle({weight:2,fillOpacity:.30}),mouseout:e=>e.target.setStyle(thematicStyles.municipios)});}});layerStatus.textContent='Municípios do Maranhão carregados.';layerStatus.className='lab-status success';return municipios;}catch(error){console.error(error);municipiosCheckbox.checked=false;layerStatus.textContent='Falha ao carregar os municípios.';layerStatus.className='lab-status error';throw error;}}
 document.querySelectorAll('input[name="basemap"]').forEach(r=>r.addEventListener('change',e=>{map.removeLayer(currentBasemap);currentBasemap=basemaps[e.target.value].addTo(map);if(currentBasemap.bringToBack)currentBasemap.bringToBack();}));
 maranhaoCheckbox.addEventListener('change',async e=>{if(e.target.checked){try{const l=await loadMaranhao();if(e.target.checked)l.addTo(map);}catch(_){}}else if(maranhao&&map.hasLayer(maranhao))map.removeLayer(maranhao);});
+function atualizarEventosMunicipais() {
+    const pane = map.getPane('geo-municipal');
+    if (!pane) return;
+    const ativo = Boolean(
+        municipiosCheckbox.checked &&
+        municipios &&
+        map.hasLayer(municipios)
+    );
+    pane.style.pointerEvents = ativo ? 'auto' : 'none';
+}
+
+map.on('layeradd layerremove', atualizarEventosMunicipais);
+municipiosCheckbox.addEventListener('change', atualizarEventosMunicipais);
 municipiosCheckbox.addEventListener('change',async e=>{if(e.target.checked){try{const l=await loadMunicipios();if(e.target.checked)l.addTo(map);if(maranhao&&map.hasLayer(maranhao))maranhao.bringToFront();}catch(_){}}else if(municipios&&map.hasLayer(municipios))map.removeLayer(municipios);});
 async function loadSedes(){if(sedes)return sedes;layerStatus.textContent='Carregando sedes municipais…';try{const r=await fetch('data/geojson/Sedes_MA.geojson');if(!r.ok)throw new Error('HTTP '+r.status);const data=await r.json();sedesData=data;sedes=L.geoJSON(data,{pane:'geo-point',pointToLayer:(f,ll)=>L.circleMarker(ll,{...thematicStyles.sedes,pane:'geo-point',renderer:geoRenderers.point}),onEachFeature:(f,l)=>bindModeAwarePopup(l,genericPopup(f.properties||{}))});layerStatus.textContent='Sedes municipais carregadas.';layerStatus.className='lab-status success';return sedes;}catch(error){console.error(error);sedesCheckbox.checked=false;layerStatus.textContent='Falha ao carregar as sedes municipais.';layerStatus.className='lab-status error';throw error;}}
 sedesCheckbox.addEventListener('change',async e=>{if(e.target.checked){try{const layer=await loadSedes();if(e.target.checked)layer.addTo(map);}catch(_){}}else if(sedes&&map.hasLayer(sedes))map.removeLayer(sedes);});
