@@ -224,7 +224,7 @@ fileInput.addEventListener('change',async()=>{
   run.disabled=pending||left.options.length<2;
  };
  new MutationObserver(refresh).observe(localList,{childList:true});refresh();
- run.addEventListener('click',()=>{
+ run.addEventListener('click',()=>{if(pending)return;
   invalidateResult();
   if(!window.turf||typeof turf.intersect!=='function'){report('Turf.js indisponível. Verifique a conexão.',true);return;}
   const a=localLayers.get(left.value),b=localLayers.get(right.value);
